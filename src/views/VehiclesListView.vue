@@ -60,7 +60,7 @@
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
       <el-table
         v-loading="loading"
-        :data="filteredVehicles"
+        :data="paginatedVehicles"
         style="width: 100%"
         stripe
         empty-text="Awtoulag tapylmady."
@@ -187,6 +187,25 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- Pagination -->
+      <div class="px-5 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+        <div class="text-xs text-slate-500">
+          Jemi: <span class="font-bold text-slate-800">{{ filteredVehicles.length }}</span> awtoulag
+          <span v-if="filteredVehicles.length > 0" class="ml-1 text-slate-400">
+            ({{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, filteredVehicles.length) }} görkezilýär)
+          </span>
+        </div>
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredVehicles.length"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          class="!flex-wrap justify-end"
+        />
+      </div>
     </div>
 
     <!-- Modals -->
@@ -201,7 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import api from '@/api'
@@ -219,6 +238,10 @@ const filterLocation = ref('')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const selectedVehicleForEdit = ref<Vehicle | null>(null)
+
+// Pagination state
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const statusesList = ref<DynamicStatus[]>([])
 const locationsList = ref<DynamicLocation[]>([])
@@ -260,10 +283,20 @@ const filteredVehicles = computed(() => {
   })
 })
 
+const paginatedVehicles = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredVehicles.value.slice(start, start + pageSize.value)
+})
+
+watch([searchQuery, filterStatus, filterLocation], () => {
+  currentPage.value = 1
+})
+
 const resetFilters = () => {
   searchQuery.value = ''
   filterStatus.value = ''
   filterLocation.value = ''
+  currentPage.value = 1
 }
 
 const getStatusTagType = (status: string) => {
