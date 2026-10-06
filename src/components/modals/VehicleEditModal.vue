@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="Awtoulagy Üýtgetmek (Edit)"
+    :title="$t('vehicles.editModalTitle')"
     width="600px"
     class="top-modal"
     append-to-body
@@ -12,7 +12,7 @@
       <div class="grid grid-cols-2 gap-4">
         
         <!-- VIN (Read only) -->
-        <el-form-item label="VIN Kod" class="col-span-2">
+        <el-form-item :label="$t('vehicles.vinCode')" class="col-span-2">
           <el-input :model-value="vehicle?.vin" disabled>
             <template #prefix>
               <span class="font-mono text-slate-500 font-bold">VIN:</span>
@@ -21,10 +21,10 @@
         </el-form-item>
 
         <!-- Make -->
-        <el-form-item label="Markasy (Make)" prop="make">
+        <el-form-item :label="$t('vehicles.makeLabel')" prop="make">
           <el-select
             v-model="form.make"
-            placeholder="Markany saýlaň"
+            :placeholder="$t('vehicles.makePlaceholder')"
             filterable
             allow-create
             class="!w-full"
@@ -40,10 +40,10 @@
         </el-form-item>
 
         <!-- Model -->
-        <el-form-item label="Modeli" prop="model">
+        <el-form-item :label="$t('vehicles.modelLabel')" prop="model">
           <el-select
             v-model="form.model"
-            placeholder="Modeli saýlaň"
+            :placeholder="$t('vehicles.modelPlaceholder')"
             filterable
             allow-create
             :disabled="!form.make"
@@ -61,20 +61,20 @@
         </el-form-item>
 
         <!-- Year -->
-        <el-form-item label="Ýyly" prop="year">
+        <el-form-item :label="$t('vehicles.yearLabel')" prop="year">
           <el-input-number v-model="form.year" :min="1990" :max="2035" class="!w-full" @change="autoFillTitle" />
         </el-form-item>
 
         <!-- Title -->
-        <el-form-item label="Awtoulagyň Ady" prop="title">
-          <el-input v-model="form.title" placeholder="Mysal: Toyota Camry 2022" />
+        <el-form-item :label="$t('vehicles.titleLabel')" prop="title">
+          <el-input v-model="form.title" :placeholder="$t('vehicles.titlePlaceholder')" />
         </el-form-item>
 
         <!-- Color -->
-        <el-form-item label="Reňki" prop="color">
+        <el-form-item :label="$t('vehicles.colorLabel')" prop="color">
           <el-select
             v-model="form.color"
-            placeholder="Reňki saýlaň ýa-da giriziň"
+            :placeholder="$t('vehicles.colorPlaceholder')"
             filterable
             allow-create
             class="!w-full"
@@ -89,37 +89,37 @@
         </el-form-item>
 
         <!-- Mileage -->
-        <el-form-item label="Probeg (mil)" prop="mileage">
+        <el-form-item :label="$t('vehicles.mileageLabel')" prop="mileage">
           <el-input-number v-model="form.mileage" :min="0" class="!w-full" />
         </el-form-item>
 
         <!-- Status -->
-        <el-form-item label="Statusy" prop="status">
+        <el-form-item :label="$t('vehicles.statusLabel')" prop="status">
           <el-select v-model="form.status" class="!w-full">
             <el-option
               v-for="st in statusesList"
               :key="st.code"
-              :label="st.name"
+              :label="getStatusLabel(st.code)"
               :value="st.code"
             />
           </el-select>
         </el-form-item>
 
         <!-- Location -->
-        <el-form-item label="Ýerleşýän Ýeri" prop="location">
+        <el-form-item :label="$t('vehicles.locationLabel')" prop="location">
           <el-select v-model="form.location" class="!w-full">
             <el-option
               v-for="loc in locationsList"
               :key="loc.code"
-              :label="loc.name"
+              :label="getLocationLabel(loc.code)"
               :value="loc.code"
             />
           </el-select>
         </el-form-item>
 
         <!-- Owner (Admin only) -->
-        <el-form-item v-if="authStore.isAdmin" label="Jogapkär Işgär (Owner)" prop="current_owner" class="col-span-2">
-          <el-select v-model="form.current_owner" placeholder="Işgär saýlaň" clearable class="!w-full">
+        <el-form-item v-if="authStore.isAdmin" :label="$t('vehicles.owner')" prop="current_owner" class="col-span-2">
+          <el-select v-model="form.current_owner" :placeholder="$t('vehicles.assignPlaceholder')" clearable class="!w-full">
             <el-option
               v-for="emp in employeesList"
               :key="emp.id"
@@ -130,7 +130,7 @@
         </el-form-item>
 
         <!-- Photo Section -->
-        <el-form-item label="Awtoulagyň Suraty" class="col-span-2">
+        <el-form-item :label="$t('vehicles.photoLabel')" class="col-span-2">
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
             <!-- Current / Preview Image -->
             <div
@@ -143,12 +143,12 @@
                 @click="removePhoto"
                 class="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium"
               >
-                <el-icon class="mr-1"><Delete /></el-icon> Aýyr
+                <el-icon class="mr-1"><Delete /></el-icon> {{ $t('vehicles.removePhotoBtn') }}
               </button>
             </div>
             <div v-else class="w-32 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0">
               <el-icon class="text-2xl"><Picture /></el-icon>
-              <span class="text-[11px] mt-1">Surat ýok</span>
+              <span class="text-[11px] mt-1">{{ $t('common.noPhoto') }}</span>
             </div>
 
             <!-- Upload Controls -->
@@ -162,10 +162,10 @@
               />
               <el-button @click="triggerPhotoSelect">
                 <el-icon class="mr-1"><Upload /></el-icon>
-                {{ photoPreview ? 'Suraty Çalyş' : 'Täze Surat Ýükle' }}
+                {{ photoPreview ? $t('vehicles.changePhotoBtn') : $t('vehicles.uploadPhotoBtn') }}
               </el-button>
               <p class="text-xs text-slate-400 mt-1">
-                JPG, PNG, WEBP formatlar goldanylýar (iň köp 10MB).
+                {{ $t('vehicles.photoHint') }}
               </p>
             </div>
           </div>
@@ -176,9 +176,9 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <el-button @click="visible = false">Ýatyr</el-button>
+        <el-button @click="visible = false">{{ $t('common.cancel') }}</el-button>
         <el-button type="primary" :loading="loading" @click="submitForm">
-          Ýatda Sakla
+          {{ $t('common.save') }}
         </el-button>
       </div>
     </template>
@@ -189,9 +189,11 @@
 import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api'
 import type { Vehicle, Make, VehicleModel, DynamicStatus, DynamicLocation, User } from '@/types'
+import { Delete, Picture, Upload } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -204,6 +206,7 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -251,11 +254,37 @@ const form = reactive({
   current_owner: null as number | null
 })
 
-const rules: FormRules = {
-  title: [{ required: true, message: 'Awtoulagyň adyny giriziň', trigger: 'blur' }],
-  make: [{ required: true, message: 'Markasyny saýlaň', trigger: 'change' }],
-  model: [{ required: true, message: 'Modelini saýlaň', trigger: 'change' }],
-  year: [{ required: true, message: 'Ýylyny seçiň', trigger: 'change' }],
+const rules = computed<FormRules>(() => ({
+  title: [{ required: true, message: t('vehicles.titleLabel'), trigger: 'blur' }],
+  make: [{ required: true, message: t('vehicles.makeLabel'), trigger: 'change' }],
+  model: [{ required: true, message: t('vehicles.modelLabel'), trigger: 'change' }],
+  year: [{ required: true, message: t('vehicles.yearLabel'), trigger: 'change' }],
+}))
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'PURCHASED': return t('vehicles.statusPurchased')
+    case 'IN_TRANSIT': return t('vehicles.statusInTransit')
+    case 'ARRIVED_TKM': return t('vehicles.statusArrivedTkm')
+    case 'SOLD': return t('vehicles.statusSold')
+    default: {
+      const found = statusesList.value.find(s => s.code === status)
+      return found ? found.name : status
+    }
+  }
+}
+
+const getLocationLabel = (loc: string) => {
+  switch (loc) {
+    case 'USA_COPART': return t('vehicles.locUsaCopart')
+    case 'SHIPPING_TRANSIT': return t('vehicles.locShippingTransit')
+    case 'GEORGIA': return t('vehicles.locGeorgia')
+    case 'TURKMENISTAN_INTERNAL': return t('vehicles.locTurkmenistanInternal')
+    default: {
+      const found = locationsList.value.find(l => l.code === loc)
+      return found ? found.name : loc
+    }
+  }
 }
 
 const loadDictionaries = async () => {
@@ -384,11 +413,11 @@ const submitForm = async () => {
           }
         })
 
-        ElMessage.success('Awtoulag maglumatlary üstünlikli täzelendi!')
+        ElMessage.success(t('vehicles.updateSuccess'))
         visible.value = false
         emit('updated')
       } catch (err: any) {
-        const msg = err.response?.data?.detail || 'Üýtgetmekde ýalňyşlyk ýüze çykdy.'
+        const msg = err.response?.data?.detail || t('common.error')
         ElMessage.error(msg)
       } finally {
         loading.value = false

@@ -1,14 +1,14 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="Awtoulagy Işgäre Berkitmek"
+    :title="$t('vehicles.assignLabel')"
     width="500px"
     destroy-on-close
     @open="fetchEmployees"
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-position="top">
-      <el-form-item label="Jogapkär Işgär (Employee)" prop="employee_id">
-        <el-select v-model="form.employee_id" placeholder="Işgär saýlaň" filterable class="!w-full">
+      <el-form-item :label="$t('vehicles.assignLabel')" prop="employee_id">
+        <el-select v-model="form.employee_id" :placeholder="$t('vehicles.assignPlaceholder')" filterable class="!w-full">
           <el-option
             v-for="emp in employees"
             :key="emp.id"
@@ -18,15 +18,15 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="Bellik (Optional)">
-        <el-input v-model="form.note" type="textarea" :rows="2" placeholder="Mysal: Awtoulag Merdana berkidildi." />
+      <el-form-item :label="$t('common.note')">
+        <el-input v-model="form.note" type="textarea" :rows="2" />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <el-button @click="visible = false">Ýapmak</el-button>
-        <el-button type="primary" :loading="loading" @click="submitAssign">Berkit</el-button>
+        <el-button @click="visible = false">{{ $t('common.close') }}</el-button>
+        <el-button type="primary" :loading="loading" @click="submitAssign">{{ $t('common.save') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -36,6 +36,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Vehicle, User } from '@/types'
 
@@ -48,6 +49,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
   (e: 'updated'): void
 }>()
+
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -63,9 +66,9 @@ const form = reactive({
   note: ''
 })
 
-const rules: FormRules = {
-  employee_id: [{ required: true, message: 'Işgär saýlaň', trigger: 'change' }]
-}
+const rules = computed<FormRules>(() => ({
+  employee_id: [{ required: true, message: t('vehicles.assignPlaceholder'), trigger: 'change' }]
+}))
 
 watch(() => props.vehicle, (newVeh) => {
   if (newVeh) {
@@ -88,16 +91,15 @@ const submitAssign = async () => {
       loading.value = true
       try {
         await api.post(`/vehicles/${props.vehicle.vin}/assign/`, form)
-        ElMessage.success('Awtoulag işgäre üstünlikli berkidildi!')
+        ElMessage.success(t('common.success'))
         visible.value = false
         emit('updated')
       } catch (err: any) {
-        ElMessage.error(err.response?.data?.detail || 'Işgäre berkitmekde ýalňyşlyk döredi.')
+        ElMessage.error(err.response?.data?.detail || t('common.error'))
       } finally {
         loading.value = false
       }
     }
   })
 }
-
 </script>

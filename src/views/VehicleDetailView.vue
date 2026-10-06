@@ -4,7 +4,7 @@
     <!-- Back Button & Breadcrumbs -->
     <div class="flex items-center gap-2">
       <el-button link @click="$router.push('/vehicles')">
-        <el-icon class="mr-1"><Back /></el-icon> Awtoulaglar Sanawyna Gaýt
+        <el-icon class="mr-1"><Back /></el-icon> {{ $t('common.back') }}
       </el-button>
     </div>
 
@@ -18,9 +18,9 @@
           <el-icon><Share /></el-icon>
         </div>
         <div>
-          <h4 class="text-base font-bold text-slate-900">Awtoulagy Kabul Etmek Tassyklaýşy (Handover)</h4>
+          <h4 class="text-base font-bold text-slate-900">{{ $t('vehicles.handoverAlertTitle') }}</h4>
           <p class="text-xs text-slate-600">
-            Siziň adyňyza kabul ediş-tabşyryş haýyşy geldi. Awtoulagy öz üstüňize kabul etmek üçin "Tassykla" düwmesine basyň.
+            {{ $t('vehicles.handoverAlertDesc') }}
           </p>
         </div>
       </div>
@@ -32,7 +32,7 @@
         :loading="confirmingHandover"
         @click="handleConfirmHandover"
       >
-        <el-icon class="mr-1.5"><Check /></el-icon> Kabul Et / Tassykla
+        <el-icon class="mr-1.5"><Check /></el-icon> {{ $t('vehicles.confirmHandoverBtn') }}
       </el-button>
     </div>
 
@@ -60,7 +60,7 @@
             class="w-28 h-24 sm:w-32 sm:h-28 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-200 flex flex-col items-center justify-center text-slate-400"
           >
             <el-icon class="text-3xl"><Picture /></el-icon>
-            <span class="text-[11px] mt-1 font-medium">Surat ýok</span>
+            <span class="text-[11px] mt-1 font-medium">{{ $t('common.noPhoto') }}</span>
           </div>
         </div>
 
@@ -75,13 +75,13 @@
 
             <!-- Status Badge: Berkidilen vs Tabşyrylan -->
             <el-tag v-if="vehicle.is_handed_over" type="success" effect="light" class="font-semibold">
-              <el-icon class="mr-1"><Check /></el-icon> Awtoulag Tabşyrylan (Işgär Jogapkär)
+              <el-icon class="mr-1"><Check /></el-icon> {{ $t('vehicles.handedOverBadge') }}
             </el-tag>
             <el-tag v-else-if="vehicle.pending_handover_owner" type="warning" effect="light" class="font-semibold">
-              <el-icon class="mr-1"><Loading /></el-icon> Tabşyrylyşa Garaşylýar (@{{ vehicle.pending_handover_owner_detail?.username }})
+              <el-icon class="mr-1"><Loading /></el-icon> {{ $t('vehicles.pendingHandoverBadge', { username: vehicle.pending_handover_owner_detail?.username }) }}
             </el-tag>
             <el-tag v-else type="info" effect="light" class="font-semibold">
-              <el-icon class="mr-1"><Lock /></el-icon> Awtoulag Berkidilen (Tabşyrylmadyk)
+              <el-icon class="mr-1"><Lock /></el-icon> {{ $t('vehicles.assignedBadge') }}
             </el-tag>
           </div>
 
@@ -90,11 +90,11 @@
           </h1>
           
           <p class="text-sm text-slate-500 flex items-center gap-4">
-            <span><strong class="text-slate-700">Marka/Model:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</span>
+            <span><strong class="text-slate-700">{{ $t('vehicles.makeLabel') }}:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</span>
             <span>&bull;</span>
-            <span><strong class="text-slate-700">Reňki:</strong> {{ vehicle.color }}</span>
+            <span><strong class="text-slate-700">{{ $t('vehicles.colorLabel') }}:</strong> {{ vehicle.color }}</span>
             <span>&bull;</span>
-            <span><strong class="text-slate-700">Probeg:</strong> {{ vehicle.mileage }} mil</span>
+            <span><strong class="text-slate-700">{{ $t('vehicles.mileageLabel') }}:</strong> {{ vehicle.mileage }}</span>
           </p>
         </div>
       </div>
@@ -111,7 +111,7 @@
           @click="showEditModal = true"
         >
           <el-icon class="mr-1.5"><Edit /></el-icon>
-          Üýtget
+          {{ $t('common.edit') }}
         </el-button>
 
         <!-- Admin: Assign to Employee Button -->
@@ -124,7 +124,7 @@
           @click="showAssignModal = true"
         >
           <el-icon class="mr-1.5"><User /></el-icon>
-          Işgäre Berkit / Üýtget
+          {{ $t('vehicles.assignBtn') }}
         </el-button>
 
         <el-button
@@ -135,7 +135,7 @@
           @click="showStatusModal = true"
         >
           <el-icon class="mr-1.5"><EditPen /></el-icon>
-          Status / Ýeri Üýtget
+          {{ $t('vehicles.editStatusBtn') }}
         </el-button>
 
         <!-- Employee: Handover Button (Admin does NOT have Handover) -->
@@ -147,7 +147,7 @@
           @click="showHandoverModal = true"
         >
           <el-icon class="mr-1.5"><Share /></el-icon>
-          Kabul Ediş-Tabşyryş Ugrat
+          {{ $t('vehicles.handoverBtn') }}
         </el-button>
 
         <!-- Admin: Delete Vehicle Button -->
@@ -160,7 +160,7 @@
           @click="handleDeleteCurrentVehicle"
         >
           <el-icon class="mr-1.5"><Delete /></el-icon>
-          Poz
+          {{ $t('common.delete') }}
         </el-button>
       </div>
     </div>
@@ -170,17 +170,8 @@
       <!-- Alert for Employee when vehicle is only assigned (not handed over) -->
       <el-alert
         v-if="!vehicle.is_handed_over && !authStore.isAdmin && vehicle.pending_handover_owner !== authStore.user?.id"
-        title="Awtoulag size diňe berkidilen (Tabşyrylmadyk). Siz diňe jikme-jik maglumatlary görüp bilersiňiz. Kabul ediş-tabşyryş edilip tassyklanýança üýtgeşme girizip bilmersiňiz."
+        :title="$t('vehicles.assignedOnlyAlert')"
         type="info"
-        show-icon
-        :closable="false"
-      />
-
-      <!-- Alert for Admin when vehicle is handed over to employee -->
-      <el-alert
-        v-if="vehicle.is_handed_over && authStore.isAdmin"
-        title="Awtoulag işgäre tabşyrylan. Kabul ediş-tabşyryş edilenden soň diňe jogapkär işgär üýtgeşme girizip biler (Admin ulanyjy diňe okaýar)."
-        type="warning"
         show-icon
         :closable="false"
       />
@@ -191,11 +182,11 @@
       <el-tabs v-model="activeTab" class="custom-vehicle-tabs">
         
         <!-- TAB 1: General Info -->
-        <el-tab-pane label="Umumy Maglumat" name="info">
+        <el-tab-pane :label="$t('vehicles.tabOverview')" name="info">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 py-4">
             
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Ýerleşýän Ýeri</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('common.location') }}</span>
               <span class="text-base font-bold text-slate-900 mt-1 block flex items-center gap-1.5">
                 <el-icon class="text-blue-600"><Location /></el-icon>
                 {{ getLocationLabel(vehicle.location) }}
@@ -203,22 +194,22 @@
             </div>
 
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Jogapkär (Owner)</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('vehicles.owner') }}</span>
               <span class="text-base font-bold text-slate-900 mt-1 block flex items-center gap-1.5">
                 <el-icon class="text-emerald-600"><User /></el-icon>
-                {{ vehicle.current_owner_detail ? `${vehicle.current_owner_detail.first_name} ${vehicle.current_owner_detail.last_name}` : 'Bellenilmegen' }}
+                {{ vehicle.current_owner_detail ? `${vehicle.current_owner_detail.first_name} ${vehicle.current_owner_detail.last_name}` : $t('vehicles.notAssigned') }}
               </span>
             </div>
 
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Jemi Çykdajy</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('vehicles.totalExpenses') }}</span>
               <span class="text-lg font-bold text-slate-900 font-mono mt-1 block text-emerald-700">
                 ${{ vehicle.total_expenses }}
               </span>
             </div>
 
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Hasaba Alnan Senesi</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('common.createdDate') }}</span>
               <span class="text-sm font-semibold text-slate-700 mt-1 block">
                 {{ formatDate(vehicle.created_at) }}
               </span>
@@ -228,12 +219,12 @@
         </el-tab-pane>
 
         <!-- TAB 2: Expenses -->
-        <el-tab-pane label="Çykdajylar (Expenses)" name="expenses">
+        <el-tab-pane :label="$t('vehicles.tabExpenses')" name="expenses">
           <div class="space-y-4 py-2">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-lg font-bold text-slate-900">Awtoulagyň Çykdajylary</h3>
-                <p class="text-xs text-slate-500">Copart, daşama, Gruziýa, ussa we beýleki çykdajylar.</p>
+                <h3 class="text-lg font-bold text-slate-900">{{ $t('vehicles.tabExpenses') }}</h3>
+                <p class="text-xs text-slate-500">Copart, Transit, Service</p>
               </div>
 
               <el-button
@@ -242,31 +233,31 @@
                 class="!rounded-xl"
                 @click="showExpenseModal = true"
               >
-                <el-icon class="mr-1"><Plus /></el-icon> Çykdajy Goş
+                <el-icon class="mr-1"><Plus /></el-icon> {{ $t('vehicles.addExpenseBtn') }}
               </el-button>
             </div>
 
-            <el-table :data="expenses" stripe style="width: 100%" empty-text="Çykdajy ýok.">
-              <el-table-column prop="title" label="Çykdajynyň Ady" min-width="200" />
-              <el-table-column prop="stage" label="Tapgyry" min-width="140">
+            <el-table :data="expenses" stripe style="width: 100%" :empty-text="$t('vehicles.emptyList')">
+              <el-table-column prop="title" :label="$t('vehicles.expenseTitle')" min-width="200" />
+              <el-table-column prop="stage" :label="$t('vehicles.expenseStage')" min-width="140">
                 <template #default="{ row }">
                   <el-tag v-if="row.stage" size="small" type="info">{{ row.stage }}</el-tag>
                   <span v-else class="text-slate-400 text-xs">-</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Möçberi" min-width="140" align="right">
+              <el-table-column :label="$t('common.amount')" min-width="140" align="right">
                 <template #default="{ row }">
                   <span class="font-mono font-bold text-slate-900">${{ row.amount }} {{ row.currency }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Girizen" min-width="150">
+              <el-table-column :label="$t('vehicles.expenseCreatedBy')" min-width="150">
                 <template #default="{ row }">
                   <span class="text-xs text-slate-600">
                     {{ row.created_by_detail ? row.created_by_detail.username : '-' }}
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column label="Sene" min-width="150">
+              <el-table-column :label="$t('common.date')" min-width="150">
                 <template #default="{ row }">
                   <span class="text-xs text-slate-500">{{ formatDate(row.created_at) }}</span>
                 </template>
@@ -276,27 +267,27 @@
         </el-tab-pane>
 
         <!-- TAB 3: Documents & Photos -->
-        <el-tab-pane label="Resminamalar & Suratlar" name="documents">
+        <el-tab-pane :label="$t('vehicles.tabDocuments')" name="documents">
           <div class="space-y-6 py-2">
             
             <!-- Upload Box -->
             <div v-if="canEditVehicle" class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
-              <h4 class="text-sm font-bold text-slate-800">Täze Surat / Resminama Ýüklemek</h4>
+              <h4 class="text-sm font-bold text-slate-800">{{ $t('common.upload') }}</h4>
               
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Resminamanyň Sözbaşysy</label>
-                  <el-input v-model="uploadTitle" placeholder="Mysal: Öň tarap suraty" />
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $t('common.note') }}</label>
+                  <el-input v-model="uploadTitle" placeholder="Document title" />
                 </div>
 
                 <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Tipi</label>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $t('common.type') }}</label>
                   <el-select v-model="uploadType" class="!w-full">
-                    <el-option label="Surat (Photo)" value="PHOTO" />
-                    <el-option label="Auksion Resminamasy" value="AUCTION_DOC" />
-                    <el-option label="Ýük daşama Resminamasy" value="SHIPPING_DOC" />
-                    <el-option label="Ussa / Serhet Çykdajysy" value="REPAIR_BILL" />
-                    <el-option label="Başga" value="OTHER" />
+                    <el-option label="PHOTO" value="PHOTO" />
+                    <el-option label="AUCTION_DOC" value="AUCTION_DOC" />
+                    <el-option label="SHIPPING_DOC" value="SHIPPING_DOC" />
+                    <el-option label="REPAIR_BILL" value="REPAIR_BILL" />
+                    <el-option label="OTHER" value="OTHER" />
                   </el-select>
                 </div>
 
@@ -305,10 +296,10 @@
                   <div class="flex gap-2">
                     <el-button @click="triggerFileSelect" class="flex-1">
                       <el-icon class="mr-1"><FolderOpened /></el-icon>
-                      {{ selectedFile ? selectedFile.name : 'Faýl Seçiň' }}
+                      {{ selectedFile ? selectedFile.name : $t('common.selectFile') }}
                     </el-button>
                     <el-button type="primary" :disabled="!selectedFile || !uploadTitle" :loading="uploading" @click="uploadDocument">
-                      Ýükle
+                      {{ $t('common.upload') }}
                     </el-button>
                   </div>
                 </div>
@@ -331,9 +322,9 @@
                 </div>
 
                 <div class="pt-3 border-t border-slate-100 flex justify-between items-center mt-2">
-                  <span class="text-xs text-slate-500">Ýükledi: {{ doc.uploaded_by_detail?.username || '-' }}</span>
+                  <span class="text-xs text-slate-500">{{ $t('vehicles.docUploadedBy') }}: {{ doc.uploaded_by_detail?.username || '-' }}</span>
                   <a :href="doc.file" target="_blank" class="text-blue-700 hover:text-blue-900 text-xs font-bold no-underline flex items-center gap-1">
-                    <el-icon><View /></el-icon> Gör
+                    <el-icon><View /></el-icon> {{ $t('vehicles.viewDoc') }}
                   </a>
                 </div>
               </div>
@@ -343,7 +334,7 @@
         </el-tab-pane>
 
         <!-- TAB 4: Timeline / History -->
-        <el-tab-pane label="Yzarlama Taryhy (Timeline)" name="history">
+        <el-tab-pane :label="$t('vehicles.tabHistory')" name="history">
           <div class="py-4 max-w-3xl">
             <el-timeline>
               <el-timeline-item
@@ -361,8 +352,8 @@
                     </div>
                     <p v-if="log.note" class="text-sm text-slate-700 mt-2">{{ log.note }}</p>
                     <div class="text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100 flex justify-between">
-                      <span>Üýtgeden: <strong>{{ log.changed_by_detail?.username || 'Ulgam' }}</strong></span>
-                      <span>Owner: <strong>{{ log.owner_detail?.username || 'Bellenilmegen' }}</strong></span>
+                      <span>{{ $t('vehicles.historyChangedBy') }}: <strong>{{ log.changed_by_detail?.username || '-' }}</strong></span>
+                      <span>{{ $t('vehicles.historyOwner') }}: <strong>{{ log.owner_detail?.username || '-' }}</strong></span>
                     </div>
                   </div>
                 </el-card>
@@ -389,8 +380,25 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Vehicle, VehicleHistoryLog, VehicleExpense, VehicleDocument, VehicleStatus, VehicleLocation } from '@/types'
+import {
+  Back,
+  Share,
+  Check,
+  Picture,
+  Loading,
+  Lock,
+  Edit,
+  User,
+  EditPen,
+  Delete,
+  Location,
+  Plus,
+  FolderOpened,
+  View
+} from '@element-plus/icons-vue'
 
 import AssignModal from '@/components/modals/AssignModal.vue'
 import StatusLocationModal from '@/components/modals/StatusLocationModal.vue'
@@ -401,6 +409,7 @@ import VehicleEditModal from '@/components/modals/VehicleEditModal.vue'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { t, locale } = useI18n()
 const vin = route.params.vin as string
 
 const loading = ref(false)
@@ -424,9 +433,6 @@ const uploadTitle = ref('')
 const uploadType = ref('PHOTO')
 const uploading = ref(false)
 
-// Business logic permission rule:
-// 1) Maşyn Berkitmek (is_handed_over = False): Assigned employee can view details, but CANNOT edit/add. ONLY Admin can edit.
-// 2) Maşyn Tabşyrmak (is_handed_over = True): Handed employee CAN edit/add. Admin CANNOT edit (Read-only).
 const canEditVehicle = computed(() => {
   if (!vehicle.value) return false
   if (vehicle.value.is_handed_over) {
@@ -436,26 +442,23 @@ const canEditVehicle = computed(() => {
   }
 })
 
-// Handover button is ONLY for assigned employee (Admin does NOT have Handover)
 const canHandover = computed(() => {
   if (!vehicle.value) return false
-  if (authStore.isAdmin) return false // Admin cannot initiate handover!
+  if (authStore.isAdmin) return false
   return !vehicle.value.is_handed_over && vehicle.value.current_owner === authStore.user?.id
 })
 
-// Assign button is for Admin to assign or change assigned employee before handover
 const canAssign = computed(() => {
   if (!vehicle.value) return false
   return authStore.isAdmin && !vehicle.value.is_handed_over
 })
-
 
 const fetchVehicleDetail = async () => {
   try {
     const res = await api.get<Vehicle>(`/vehicles/${vin}/`)
     vehicle.value = res.data
   } catch (err) {
-    ElMessage.error('Awtoulag maglumatlary ýüklenmedi.')
+    ElMessage.error(t('common.error'))
   }
 }
 
@@ -464,10 +467,10 @@ const handleConfirmHandover = async () => {
   confirmingHandover.value = true
   try {
     await api.post(`/vehicles/${vin}/confirm-handover/`)
-    ElMessage.success('Awtoulag üstünlikli kabul edildi we tassyklandy!')
+    ElMessage.success(t('common.success'))
     refreshData()
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.detail || 'Tassyklaýyşda ýalňyşlyk döredi.')
+    ElMessage.error(err.response?.data?.detail || t('common.error'))
   } finally {
     confirmingHandover.value = false
   }
@@ -533,12 +536,12 @@ const uploadDocument = async () => {
     await api.post(`/vehicles/${vin}/documents/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    ElMessage.success('Resminama üstünlikli ýüklendi!')
+    ElMessage.success(t('common.success'))
     selectedFile.value = null
     uploadTitle.value = ''
     fetchDocuments()
   } catch (err: any) {
-    const msg = err.response?.data?.detail || 'Resminama ýüklenende ýalňyşlyk ýüze çykdy.'
+    const msg = err.response?.data?.detail || t('common.error')
     ElMessage.error(msg)
   } finally {
     uploading.value = false
@@ -548,7 +551,8 @@ const uploadDocument = async () => {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
-  return d.toLocaleString('tk-TM', { dateStyle: 'medium', timeStyle: 'short' })
+  const loc = locale.value === 'ru' ? 'ru-RU' : locale.value === 'en' ? 'en-US' : 'tk-TM'
+  return d.toLocaleString(loc, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 const getStatusTagType = (status: VehicleStatus) => {
@@ -563,20 +567,20 @@ const getStatusTagType = (status: VehicleStatus) => {
 
 const getStatusLabel = (status: VehicleStatus) => {
   switch (status) {
-    case 'PURCHASED': return 'Satyn alyndy'
-    case 'IN_TRANSIT': return 'Ýolda'
-    case 'ARRIVED_TKM': return 'TKM-a geldi'
-    case 'SOLD': return 'Satyldy'
+    case 'PURCHASED': return t('vehicles.statusPurchased')
+    case 'IN_TRANSIT': return t('vehicles.statusInTransit')
+    case 'ARRIVED_TKM': return t('vehicles.statusArrivedTkm')
+    case 'SOLD': return t('vehicles.statusSold')
     default: return status
   }
 }
 
 const getLocationLabel = (loc: VehicleLocation) => {
   switch (loc) {
-    case 'USA_COPART': return 'Amerika (Copart)'
-    case 'SHIPPING_TRANSIT': return 'Ýük daşama'
-    case 'GEORGIA': return 'Gruziýa'
-    case 'TURKMENISTAN_INTERNAL': return 'Türkmenistan'
+    case 'USA_COPART': return t('vehicles.locUsaCopart')
+    case 'SHIPPING_TRANSIT': return t('vehicles.locShippingTransit')
+    case 'GEORGIA': return t('vehicles.locGeorgia')
+    case 'TURKMENISTAN_INTERNAL': return t('vehicles.locTurkmenistanInternal')
     default: return loc
   }
 }
@@ -585,22 +589,22 @@ const handleDeleteCurrentVehicle = async () => {
   if (!vehicle.value) return
   try {
     await ElMessageBox.confirm(
-      `"${vehicle.value.title}" (VIN: ${vehicle.value.vin}) awtoulagy pozmak isleýärsiňizmi? Oňa degişli ähli taryh we çykdajylar hem pozular.`,
-      'Awtoulagy Pozmak',
+      t('vehicles.deleteConfirmText', { title: vehicle.value.title, vin: vehicle.value.vin }),
+      t('vehicles.deleteConfirmTitle'),
       {
-        confirmButtonText: 'Hawa, Poz',
-        cancelButtonText: 'Ýatyr',
+        confirmButtonText: t('common.yes'),
+        cancelButtonText: t('common.cancel'),
         confirmButtonClass: 'el-button--danger',
         type: 'warning'
       }
     )
 
     await api.delete(`/vehicles/${vehicle.value.vin}/`)
-    ElMessage.success('Awtoulag üstünlikli pozuldy!')
+    ElMessage.success(t('vehicles.deleteSuccess'))
     router.push('/vehicles')
   } catch (err: any) {
     if (err !== 'cancel') {
-      const msg = err.response?.data?.detail || 'Pozmakda ýalňyşlyk ýüze çykdy.'
+      const msg = err.response?.data?.detail || t('common.error')
       ElMessage.error(msg)
     }
   }

@@ -3,9 +3,9 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Sözlükler Dolandyryşy</h1>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ $t('dictionaries.title') }}</h1>
         <p class="text-sm text-slate-500 mt-1">
-          Awtoulag markalaryny, modellerini, statuslaryny, ýerleşýän ýerlerini we walýutalary dolandyryň.
+          {{ $t('dictionaries.subtitle') }}
         </p>
       </div>
     </div>
@@ -15,18 +15,17 @@
       <el-tabs v-model="activeTab" class="custom-dictionary-tabs" @tab-change="handleTabChange">
         
         <!-- TAB 1: Makes & Models -->
-        <el-tab-pane label="Markalar & Modeller" name="makes-models">
+        <el-tab-pane :label="$t('dictionaries.tabMakes')" name="makes-models">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 py-2">
             
             <!-- Left: Makes (Markalar) -->
             <div class="lg:col-span-5 border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-base font-bold text-slate-900">Markalar (Makes)</h3>
-                  <p class="text-xs text-slate-500">Awtoulag öndürüjiler</p>
+                  <h3 class="text-base font-bold text-slate-900">{{ $t('dictionaries.make') }}</h3>
                 </div>
                 <el-button type="primary" size="small" class="!rounded-lg" @click="openMakeModal()">
-                  <el-icon class="mr-1"><Plus /></el-icon> Marka Goş
+                  <el-icon class="mr-1"><Plus /></el-icon> {{ $t('dictionaries.addMake') }}
                 </el-button>
               </div>
 
@@ -63,9 +62,8 @@
                 <div>
                   <h3 class="text-base font-bold text-slate-900">
                     <span v-if="selectedMake" class="text-blue-700 font-extrabold">{{ selectedMake.name }}</span>
-                    <span v-else>Ähli</span> Modeller
+                    <span v-else>{{ $t('common.all') }}</span> {{ $t('vehicles.modelLabel') }}
                   </h3>
-                  <p class="text-xs text-slate-500">Marka degişli awtoulag modelleri</p>
                 </div>
                 <el-button
                   type="primary"
@@ -74,27 +72,27 @@
                   :disabled="!selectedMake"
                   @click="openModelModal()"
                 >
-                  <el-icon class="mr-1"><Plus /></el-icon> Model Goş
+                  <el-icon class="mr-1"><Plus /></el-icon> {{ $t('dictionaries.addModel') }}
                 </el-button>
               </div>
 
               <div v-if="!selectedMake" class="text-center py-12 text-slate-400 text-sm">
-                Modelleri görmek ýa-da goşmak üçin çep tarapdan Marka saýlaň.
+                {{ $t('vehicles.makePlaceholder') }}
               </div>
 
               <div v-else v-loading="loadingModels">
-                <el-table :data="models" stripe style="width: 100%" empty-text="Bu marka degişli model ýok.">
-                  <el-table-column prop="name" label="Model Ady" min-width="180">
+                <el-table :data="models" stripe style="width: 100%" empty-text="-">
+                  <el-table-column prop="name" :label="$t('vehicles.modelLabel')" min-width="180">
                     <template #default="{ row }">
                       <span class="font-semibold text-slate-800">{{ row.name }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="make_name" label="Markasy" min-width="120">
+                  <el-table-column prop="make_name" :label="$t('dictionaries.make')" min-width="120">
                     <template #default="{ row }">
                       <el-tag size="small" type="info">{{ row.make_name || selectedMake?.name }}</el-tag>
                     </template>
                   </el-table-column>
-                  <el-table-column label="Amallar" width="120" align="right">
+                  <el-table-column :label="$t('common.actions')" width="120" align="right">
                     <template #default="{ row }">
                       <el-button type="primary" link size="small" @click="openModelModal(row)">
                         <el-icon><Edit /></el-icon>
@@ -112,32 +110,31 @@
         </el-tab-pane>
 
         <!-- TAB 2: Statuses -->
-        <el-tab-pane label="Statuslar" name="statuses">
+        <el-tab-pane :label="$t('dictionaries.tabStatuses')" name="statuses">
           <div class="space-y-4 py-2">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-lg font-bold text-slate-900">Awtoulag Statuslary</h3>
-                <p class="text-xs text-slate-500">Ulgamda awtoulaglaryň tapgyrlaryny bildirýän statuslar.</p>
+                <h3 class="text-lg font-bold text-slate-900">{{ $t('dictionaries.tabStatuses') }}</h3>
               </div>
               <el-button type="primary" class="!rounded-xl" @click="openStatusModal()">
-                <el-icon class="mr-1"><Plus /></el-icon> Status Goş
+                <el-icon class="mr-1"><Plus /></el-icon> {{ $t('dictionaries.addStatus') }}
               </el-button>
             </div>
 
-            <el-table v-loading="loadingStatuses" :data="statuses" stripe style="width: 100%" empty-text="Status ýok.">
-              <el-table-column prop="code" label="Kody (Code)" min-width="180">
+            <el-table v-loading="loadingStatuses" :data="statuses" stripe style="width: 100%" empty-text="-">
+              <el-table-column prop="code" :label="$t('dictionaries.code')" min-width="180">
                 <template #default="{ row }">
                   <span class="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs">
                     {{ row.code }}
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column prop="name" label="Görkezilýän Ady" min-width="200">
+              <el-table-column prop="name" :label="$t('dictionaries.name')" min-width="200">
                 <template #default="{ row }">
                   <span class="font-semibold text-slate-800">{{ row.name }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Amallar" width="120" align="right">
+              <el-table-column :label="$t('common.actions')" width="120" align="right">
                 <template #default="{ row }">
                   <el-button type="primary" link size="small" @click="openStatusModal(row)">
                     <el-icon><Edit /></el-icon>
@@ -152,32 +149,31 @@
         </el-tab-pane>
 
         <!-- TAB 3: Locations -->
-        <el-tab-pane label="Ýerleşýän Ýerler" name="locations">
+        <el-tab-pane :label="$t('dictionaries.tabLocations')" name="locations">
           <div class="space-y-4 py-2">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-lg font-bold text-slate-900">Ýerleşýän Ýerler (Locations)</h3>
-                <p class="text-xs text-slate-500">Awtoulagyň saklanýan ýa-da geçen ýerleriniň sözlügi.</p>
+                <h3 class="text-lg font-bold text-slate-900">{{ $t('dictionaries.tabLocations') }}</h3>
               </div>
               <el-button type="primary" class="!rounded-xl" @click="openLocationModal()">
-                <el-icon class="mr-1"><Plus /></el-icon> Ýerleşýän Ýer Goş
+                <el-icon class="mr-1"><Plus /></el-icon> {{ $t('dictionaries.addLocation') }}
               </el-button>
             </div>
 
-            <el-table v-loading="loadingLocations" :data="locations" stripe style="width: 100%" empty-text="Ýerleşýän ýer ýok.">
-              <el-table-column prop="code" label="Kody (Code)" min-width="180">
+            <el-table v-loading="loadingLocations" :data="locations" stripe style="width: 100%" empty-text="-">
+              <el-table-column prop="code" :label="$t('dictionaries.code')" min-width="180">
                 <template #default="{ row }">
                   <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs">
                     {{ row.code }}
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column prop="name" label="Görkezilýän Ady" min-width="200">
+              <el-table-column prop="name" :label="$t('dictionaries.name')" min-width="200">
                 <template #default="{ row }">
                   <span class="font-semibold text-slate-800">{{ row.name }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Amallar" width="120" align="right">
+              <el-table-column :label="$t('common.actions')" width="120" align="right">
                 <template #default="{ row }">
                   <el-button type="primary" link size="small" @click="openLocationModal(row)">
                     <el-icon><Edit /></el-icon>
@@ -192,31 +188,30 @@
         </el-tab-pane>
 
         <!-- TAB 4: Currencies -->
-        <el-tab-pane label="Walýutalar" name="currencies">
+        <el-tab-pane :label="$t('dictionaries.tabCurrencies')" name="currencies">
           <div class="space-y-4 py-2">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-lg font-bold text-slate-900">Walýutalar (Currencies)</h3>
-                <p class="text-xs text-slate-500">Çykdajylarda ulanylýan pul birlikleri.</p>
+                <h3 class="text-lg font-bold text-slate-900">{{ $t('dictionaries.tabCurrencies') }}</h3>
               </div>
               <el-button type="primary" class="!rounded-xl" @click="openCurrencyModal()">
-                <el-icon class="mr-1"><Plus /></el-icon> Walýuta Goş
+                <el-icon class="mr-1"><Plus /></el-icon> {{ $t('dictionaries.addCurrency') }}
               </el-button>
             </div>
 
-            <el-table v-loading="loadingCurrencies" :data="currencies" stripe style="width: 100%" empty-text="Walýuta ýok.">
-              <el-table-column prop="code" label="Walýuta Kody" min-width="120">
+            <el-table v-loading="loadingCurrencies" :data="currencies" stripe style="width: 100%" empty-text="-">
+              <el-table-column prop="code" :label="$t('dictionaries.code')" min-width="120">
                 <template #default="{ row }">
                   <span class="font-mono font-bold text-slate-900">{{ row.code }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="name" label="Ady" min-width="180" />
-              <el-table-column prop="symbol" label="Belgisi (Symbol)" min-width="120">
+              <el-table-column prop="name" :label="$t('dictionaries.name')" min-width="180" />
+              <el-table-column prop="symbol" :label="$t('dictionaries.symbol')" min-width="120">
                 <template #default="{ row }">
                   <span class="font-bold text-blue-700 bg-slate-100 px-2 py-0.5 rounded">{{ row.symbol }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Amallar" width="120" align="right">
+              <el-table-column :label="$t('common.actions')" width="120" align="right">
                 <template #default="{ row }">
                   <el-button type="primary" link size="small" @click="openCurrencyModal(row)">
                     <el-icon><Edit /></el-icon>
@@ -231,25 +226,24 @@
         </el-tab-pane>
 
         <!-- TAB 5: Expense Types -->
-        <el-tab-pane label="Çykdajy Atlary" name="expense-types">
+        <el-tab-pane :label="$t('dictionaries.tabExpenseTypes')" name="expense-types">
           <div class="space-y-4 py-2">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-lg font-bold text-slate-900">Çykdajy Atlary (Expense Types)</h3>
-                <p class="text-xs text-slate-500">Çykdajy goşulanda saýlanýan ady/görnüşi.</p>
+                <h3 class="text-lg font-bold text-slate-900">{{ $t('dictionaries.tabExpenseTypes') }}</h3>
               </div>
               <el-button type="primary" class="!rounded-xl" @click="openExpenseTypeModal()">
-                <el-icon class="mr-1"><Plus /></el-icon> Çykdajy Ady Goş
+                <el-icon class="mr-1"><Plus /></el-icon> {{ $t('dictionaries.addExpenseType') }}
               </el-button>
             </div>
 
-            <el-table v-loading="loadingExpenseTypes" :data="expenseTypes" stripe style="width: 100%" empty-text="Çykdajy ady ýok.">
-              <el-table-column prop="name" label="Çykdajynyň Ady" min-width="250">
+            <el-table v-loading="loadingExpenseTypes" :data="expenseTypes" stripe style="width: 100%" empty-text="-">
+              <el-table-column prop="name" :label="$t('dictionaries.name')" min-width="250">
                 <template #default="{ row }">
                   <span class="font-semibold text-slate-800">{{ row.name }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Amallar" width="120" align="right">
+              <el-table-column :label="$t('common.actions')" width="120" align="right">
                 <template #default="{ row }">
                   <el-button type="primary" link size="small" @click="openExpenseTypeModal(row)">
                     <el-icon><Edit /></el-icon>
@@ -268,106 +262,106 @@
 
     <!-- Modals for CRUD -->
     <!-- 1. Make Modal -->
-    <el-dialog v-model="makeModal.visible" :title="makeModal.isEdit ? 'Markany Üýtget' : 'Täze Marka Goş'" width="400px" destroy-on-close>
+    <el-dialog v-model="makeModal.visible" :title="makeModal.isEdit ? $t('common.edit') : $t('dictionaries.addMake')" width="400px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Markanyň Ady (Make Name)" required>
-          <el-input v-model="makeModal.form.name" placeholder="Mysal: Toyota, BMW, Audi" />
+        <el-form-item :label="$t('dictionaries.name')" required>
+          <el-input v-model="makeModal.form.name" placeholder="Toyota, BMW, etc." />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <el-button @click="makeModal.visible = false">Ýap</el-button>
-          <el-button type="primary" :loading="makeModal.loading" @click="saveMake">Ýatda Sakla</el-button>
+          <el-button @click="makeModal.visible = false">{{ $t('common.close') }}</el-button>
+          <el-button type="primary" :loading="makeModal.loading" @click="saveMake">{{ $t('common.save') }}</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 2. Model Modal -->
-    <el-dialog v-model="modelModal.visible" :title="modelModal.isEdit ? 'Modeli Üýtget' : 'Täze Model Goş'" width="400px" destroy-on-close>
+    <el-dialog v-model="modelModal.visible" :title="modelModal.isEdit ? $t('common.edit') : $t('dictionaries.addModel')" width="400px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Markasy">
+        <el-form-item :label="$t('dictionaries.make')">
           <el-input :model-value="selectedMake?.name" disabled />
         </el-form-item>
-        <el-form-item label="Modeliň Ady (Model Name)" required>
-          <el-input v-model="modelModal.form.name" placeholder="Mysal: Camry, X5, E-Class" />
+        <el-form-item :label="$t('dictionaries.name')" required>
+          <el-input v-model="modelModal.form.name" placeholder="Camry, X5, etc." />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <el-button @click="modelModal.visible = false">Ýap</el-button>
-          <el-button type="primary" :loading="modelModal.loading" @click="saveModel">Ýatda Sakla</el-button>
+          <el-button @click="modelModal.visible = false">{{ $t('common.close') }}</el-button>
+          <el-button type="primary" :loading="modelModal.loading" @click="saveModel">{{ $t('common.save') }}</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 3. Status Modal -->
-    <el-dialog v-model="statusModal.visible" :title="statusModal.isEdit ? 'Statusy Üýtget' : 'Täze Status Goş'" width="450px" destroy-on-close>
+    <el-dialog v-model="statusModal.visible" :title="statusModal.isEdit ? $t('common.edit') : $t('dictionaries.addStatus')" width="450px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Kody (Code)" required>
-          <el-input v-model="statusModal.form.code" placeholder="Mysal: IN_TRANSIT" uppercase />
+        <el-form-item :label="$t('dictionaries.code')" required>
+          <el-input v-model="statusModal.form.code" placeholder="IN_TRANSIT" uppercase />
         </el-form-item>
-        <el-form-item label="Görkezilýän Ady (Label Name)" required>
-          <el-input v-model="statusModal.form.name" placeholder="Mysal: Ýolda" />
+        <el-form-item :label="$t('dictionaries.name')" required>
+          <el-input v-model="statusModal.form.name" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <el-button @click="statusModal.visible = false">Ýap</el-button>
-          <el-button type="primary" :loading="statusModal.loading" @click="saveStatus">Ýatda Sakla</el-button>
+          <el-button @click="statusModal.visible = false">{{ $t('common.close') }}</el-button>
+          <el-button type="primary" :loading="statusModal.loading" @click="saveStatus">{{ $t('common.save') }}</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 4. Location Modal -->
-    <el-dialog v-model="locationModal.visible" :title="locationModal.isEdit ? 'Ýerleşýän Ýeri Üýtget' : 'Täze Ýerleşýän Ýer Goş'" width="450px" destroy-on-close>
+    <el-dialog v-model="locationModal.visible" :title="locationModal.isEdit ? $t('common.edit') : $t('dictionaries.addLocation')" width="450px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Kody (Code)" required>
-          <el-input v-model="locationModal.form.code" placeholder="Mysal: GEORGIA" uppercase />
+        <el-form-item :label="$t('dictionaries.code')" required>
+          <el-input v-model="locationModal.form.code" placeholder="GEORGIA" uppercase />
         </el-form-item>
-        <el-form-item label="Görkezilýän Ady (Label Name)" required>
-          <el-input v-model="locationModal.form.name" placeholder="Mysal: Gruziýa" />
+        <el-form-item :label="$t('dictionaries.name')" required>
+          <el-input v-model="locationModal.form.name" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <el-button @click="locationModal.visible = false">Ýap</el-button>
-          <el-button type="primary" :loading="locationModal.loading" @click="saveLocation">Ýatda Sakla</el-button>
+          <el-button @click="locationModal.visible = false">{{ $t('common.close') }}</el-button>
+          <el-button type="primary" :loading="locationModal.loading" @click="saveLocation">{{ $t('common.save') }}</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 5. Currency Modal -->
-    <el-dialog v-model="currencyModal.visible" :title="currencyModal.isEdit ? 'Walýutany Üýtget' : 'Täze Walýuta Goş'" width="450px" destroy-on-close>
+    <el-dialog v-model="currencyModal.visible" :title="currencyModal.isEdit ? $t('common.edit') : $t('dictionaries.addCurrency')" width="450px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Kody (Code)" required>
-          <el-input v-model="currencyModal.form.code" placeholder="Mysal: USD, TMT, EUR" uppercase />
+        <el-form-item :label="$t('dictionaries.code')" required>
+          <el-input v-model="currencyModal.form.code" placeholder="USD" uppercase />
         </el-form-item>
-        <el-form-item label="Ady" required>
-          <el-input v-model="currencyModal.form.name" placeholder="Mysal: US Dollar" />
+        <el-form-item :label="$t('dictionaries.name')" required>
+          <el-input v-model="currencyModal.form.name" placeholder="US Dollar" />
         </el-form-item>
-        <el-form-item label="Belgisi (Symbol)" required>
-          <el-input v-model="currencyModal.form.symbol" placeholder="Mysal: $, m., €" />
+        <el-form-item :label="$t('dictionaries.symbol')" required>
+          <el-input v-model="currencyModal.form.symbol" placeholder="$" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <el-button @click="currencyModal.visible = false">Ýap</el-button>
-          <el-button type="primary" :loading="currencyModal.loading" @click="saveCurrency">Ýatda Sakla</el-button>
+          <el-button @click="currencyModal.visible = false">{{ $t('common.close') }}</el-button>
+          <el-button type="primary" :loading="currencyModal.loading" @click="saveCurrency">{{ $t('common.save') }}</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 6. Expense Type Modal -->
-    <el-dialog v-model="expenseTypeModal.visible" :title="expenseTypeModal.isEdit ? 'Çykdajy Adyny Üýtget' : 'Täze Çykdajy Ady Goş'" width="450px" destroy-on-close>
+    <el-dialog v-model="expenseTypeModal.visible" :title="expenseTypeModal.isEdit ? $t('common.edit') : $t('dictionaries.addExpenseType')" width="450px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Çykdajynyň Ady" required>
-          <el-input v-model="expenseTypeModal.form.name" placeholder="Mysal: Copart Auksion tölegi" />
+        <el-form-item :label="$t('dictionaries.name')" required>
+          <el-input v-model="expenseTypeModal.form.name" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <el-button @click="expenseTypeModal.visible = false">Ýap</el-button>
-          <el-button type="primary" :loading="expenseTypeModal.loading" @click="saveExpenseType">Ýatda Sakla</el-button>
+          <el-button @click="expenseTypeModal.visible = false">{{ $t('common.close') }}</el-button>
+          <el-button type="primary" :loading="expenseTypeModal.loading" @click="saveExpenseType">{{ $t('common.save') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -378,9 +372,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Make, VehicleModel, DynamicStatus, DynamicLocation, Currency, ExpenseType } from '@/types'
+import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const activeTab = ref('makes-models')
 
 // Data State

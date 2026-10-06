@@ -6,15 +6,15 @@
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
           <el-icon class="text-blue-600"><DataAnalysis /></el-icon>
-          Hasabatlar we Analitika Ulgamy
+          {{ $t('reports.title') }}
         </h1>
         <p class="text-sm text-slate-500 mt-1">
-          Awtoulaglar, çykdajylar we tapgyrlar boýunça giňişleýin finansial we statistiki hasabatlar.
+          {{ $t('reports.subtitle') }}
         </p>
       </div>
 
       <el-button type="primary" plain class="!rounded-xl" @click="fetchReports">
-        <el-icon class="mr-1"><Refresh /></el-icon> Hasabaty Täzele
+        <el-icon class="mr-1"><Refresh /></el-icon> {{ $t('reports.filterApply') }}
       </el-button>
     </div>
 
@@ -23,21 +23,21 @@
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <span class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
           <el-icon class="text-blue-600"><Filter /></el-icon>
-          Wagt Aralygy Filtry (Period Filters)
+          {{ $t('reports.filterPeriod') }}
         </span>
-        <span class="text-xs text-slate-400 font-medium">Saýlanan rejim: <strong class="text-blue-700">{{ getPeriodLabel(periodType) }}</strong></span>
+        <span class="text-xs text-slate-400 font-medium">Saýlanan: <strong class="text-blue-700">{{ getPeriodLabel(periodType) }}</strong></span>
       </div>
 
       <div class="space-y-4">
         <!-- Period Type Selection Radio Buttons -->
         <el-radio-group v-model="periodType" size="large" @change="handlePeriodTypeChange" class="custom-radio-group">
-          <el-radio-button label="all">Ähli Döwür</el-radio-button>
-          <el-radio-button label="day">Takyk Gün</el-radio-button>
-          <el-radio-button label="day_range">Gün Aralygy</el-radio-button>
-          <el-radio-button label="month">Takyk Aý</el-radio-button>
-          <el-radio-button label="month_range">Aý Aralygy</el-radio-button>
-          <el-radio-button label="year">Takyk Ýyl</el-radio-button>
-          <el-radio-button label="year_range">Ýyl Aralygy</el-radio-button>
+          <el-radio-button label="all">{{ $t('reports.periodAll') }}</el-radio-button>
+          <el-radio-button label="day">{{ $t('reports.periodDay') }}</el-radio-button>
+          <el-radio-button label="day_range">{{ $t('reports.periodDayRange') }}</el-radio-button>
+          <el-radio-button label="month">{{ $t('reports.periodMonth') }}</el-radio-button>
+          <el-radio-button label="month_range">{{ $t('reports.periodMonthRange') }}</el-radio-button>
+          <el-radio-button label="year">{{ $t('reports.periodYear') }}</el-radio-button>
+          <el-radio-button label="year_range">{{ $t('reports.periodYearRange') }}</el-radio-button>
         </el-radio-group>
 
         <!-- Dynamic Date Input Fields -->
@@ -45,64 +45,64 @@
           
           <!-- Takyk Gün -->
           <div v-if="periodType === 'day'" class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-600">Gün saýlaň:</span>
+            <span class="text-xs font-semibold text-slate-600">Sene:</span>
             <el-date-picker
               v-model="filterDate"
               type="date"
               value-format="YYYY-MM-DD"
-              placeholder="GG.AA.ÝÝÝÝ"
+              placeholder="YYYY-MM-DD"
               @change="fetchReports"
             />
           </div>
 
           <!-- Gün Aralygy -->
           <div v-if="periodType === 'day_range'" class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-600">Seneler aralygy:</span>
+            <span class="text-xs font-semibold text-slate-600">Aralyk:</span>
             <el-date-picker
               v-model="filterDateRange"
               type="daterange"
               value-format="YYYY-MM-DD"
               range-separator="-"
-              start-placeholder="Başlangyç gün"
-              end-placeholder="Ahyrky gün"
+              start-placeholder="Start"
+              end-placeholder="End"
               @change="fetchReports"
             />
           </div>
 
           <!-- Takyk Aý -->
           <div v-if="periodType === 'month'" class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-600">Aý saýlaň:</span>
+            <span class="text-xs font-semibold text-slate-600">Aý:</span>
             <el-date-picker
               v-model="filterMonth"
               type="month"
               value-format="YYYY-MM"
-              placeholder="AA.ÝÝÝÝ"
+              placeholder="YYYY-MM"
               @change="fetchReports"
             />
           </div>
 
           <!-- Aý Aralygy -->
           <div v-if="periodType === 'month_range'" class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-600">Aýlar aralygy:</span>
+            <span class="text-xs font-semibold text-slate-600">Aralyk:</span>
             <el-date-picker
               v-model="filterMonthRange"
               type="monthrange"
               value-format="YYYY-MM"
               range-separator="-"
-              start-placeholder="Başlangyç aý"
-              end-placeholder="Ahyrky aý"
+              start-placeholder="Start"
+              end-placeholder="End"
               @change="fetchReports"
             />
           </div>
 
           <!-- Takyk Ýyl -->
           <div v-if="periodType === 'year'" class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-600">Ýyl saýlaň:</span>
+            <span class="text-xs font-semibold text-slate-600">Ýyl:</span>
             <el-date-picker
               v-model="filterYear"
               type="year"
               value-format="YYYY"
-              placeholder="ÝÝÝÝ"
+              placeholder="YYYY"
               @change="fetchReports"
             />
           </div>
@@ -110,24 +110,24 @@
           <!-- Ýyl Aralygy -->
           <div v-if="periodType === 'year_range'" class="flex items-center gap-3">
             <div class="flex items-center gap-1.5">
-              <span class="text-xs font-semibold text-slate-600">Başlangyç ýyl:</span>
+              <span class="text-xs font-semibold text-slate-600">Başlangyç:</span>
               <el-date-picker
                 v-model="filterStartYear"
                 type="year"
                 value-format="YYYY"
-                placeholder="Ýyl"
+                placeholder="YYYY"
                 style="width: 140px;"
                 @change="fetchReports"
               />
             </div>
             <span class="text-slate-400 font-bold">-</span>
             <div class="flex items-center gap-1.5">
-              <span class="text-xs font-semibold text-slate-600">Ahyrky ýyl:</span>
+              <span class="text-xs font-semibold text-slate-600">Ahyrky:</span>
               <el-date-picker
                 v-model="filterEndYear"
                 type="year"
                 value-format="YYYY"
-                placeholder="Ýyl"
+                placeholder="YYYY"
                 style="width: 140px;"
                 @change="fetchReports"
               />
@@ -147,11 +147,11 @@
         <!-- KPI 1: Total Vehicles -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex items-center justify-between">
           <div class="space-y-1">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Jemi Awtoulaglar</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('reports.totalVehicles') }}</span>
             <span class="text-3xl font-black text-slate-900 block tracking-tight">
               {{ kpis.total_vehicles }}
             </span>
-            <span class="text-[11px] text-slate-400 block">Hasaba alnan awtoulag sany</span>
+            <span class="text-[11px] text-slate-400 block">{{ $t('vehicles.listTitle') }}</span>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-2xl">
             <el-icon><Van /></el-icon>
@@ -161,11 +161,11 @@
         <!-- KPI 2: Total Expenses -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex items-center justify-between">
           <div class="space-y-1">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Jemi Çykdajylar</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('reports.totalExpenses') }}</span>
             <span class="text-3xl font-black text-emerald-600 font-mono block tracking-tight">
               ${{ kpis.total_expenses_usd }}
             </span>
-            <span class="text-[11px] text-slate-400 block">Bütün tapgyrlardaky çykdajy</span>
+            <span class="text-[11px] text-slate-400 block">USD</span>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-2xl">
             <el-icon><Money /></el-icon>
@@ -175,11 +175,11 @@
         <!-- KPI 3: Handed Over Vehicles -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex items-center justify-between">
           <div class="space-y-1">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Tabşyrylan (Handed Over)</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('reports.handedOver') }}</span>
             <span class="text-3xl font-black text-blue-700 block tracking-tight">
               {{ kpis.handed_over_count }}
             </span>
-            <span class="text-[11px] text-slate-400 block">Işgäryň jogapkärçiligindäki awtoulaglar</span>
+            <span class="text-[11px] text-slate-400 block">{{ $t('nav.roleEmployee') }}</span>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-2xl">
             <el-icon><Check /></el-icon>
@@ -189,11 +189,11 @@
         <!-- KPI 4: Assigned / Pending -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex items-center justify-between">
           <div class="space-y-1">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">Berkidilen (Assigned)</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('reports.assignedOnly') }}</span>
             <span class="text-3xl font-black text-amber-600 block tracking-tight">
               {{ kpis.assigned_count }}
             </span>
-            <span class="text-[11px] text-slate-400 block">Kabul ediş-tabşyryş edilmedik</span>
+            <span class="text-[11px] text-slate-400 block">Pending</span>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-2xl">
             <el-icon><Lock /></el-icon>
@@ -210,15 +210,15 @@
           <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
               <el-icon class="text-blue-600"><PieChart /></el-icon>
-              Çykdajylaryň Ady Boýunça Bölünişi
+              {{ $t('reports.byExpenseTitle') }}
             </h3>
-            <span class="text-xs text-slate-400">{{ byExpenseTitle.length }} dürli çykdajy</span>
+            <span class="text-xs text-slate-400">{{ byExpenseTitle.length }}</span>
           </div>
 
           <div v-if="byExpenseTitle.length > 0" class="space-y-4">
             <div v-for="item in byExpenseTitle" :key="item.title" class="space-y-1">
               <div class="flex justify-between text-xs font-semibold">
-                <span class="text-slate-800">{{ item.title }} <span class="text-slate-400 font-normal">({{ item.count }} sapar)</span></span>
+                <span class="text-slate-800">{{ item.title }} <span class="text-slate-400 font-normal">({{ item.count }})</span></span>
                 <span class="font-mono font-bold text-slate-900">${{ Number(item.total_amount).toFixed(2) }}</span>
               </div>
               <el-progress
@@ -230,7 +230,7 @@
             </div>
           </div>
           <div v-else class="py-8 text-center text-slate-400 text-sm">
-            Çykdajy maglumaty tapylmady.
+            -
           </div>
         </div>
 
@@ -242,12 +242,12 @@
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <el-icon class="text-emerald-600"><TrendCharts /></el-icon>
-                Tapgyrlar Boýunça Çykdajylar (Stages)
+                {{ $t('reports.byExpenseStage') }}
               </h3>
             </div>
 
             <div v-if="byExpenseStage.length > 0" class="space-y-3">
-              <div v-for="st in byExpenseStage" :key="st.stage || 'Beýlekiler'" class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div v-for="st in byExpenseStage" :key="st.stage || 'General'" class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <span class="text-sm font-semibold text-slate-700 flex items-center gap-2">
                   <el-tag size="small" type="info">{{ st.stage || 'General' }}</el-tag>
                 </span>
@@ -257,7 +257,7 @@
               </div>
             </div>
             <div v-else class="py-4 text-center text-slate-400 text-sm">
-              Tapgyrlar boýunça maglumat ýok.
+              -
             </div>
           </div>
 
@@ -265,24 +265,24 @@
           <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
               <el-icon class="text-amber-600"><Compass /></el-icon>
-              Awtoulag Statuslary we Ýerleşiş Statistikasy
+              {{ $t('reports.byStatus') }} & {{ $t('reports.byLocation') }}
             </h3>
 
             <div class="grid grid-cols-2 gap-4">
               <!-- Statuses -->
               <div class="space-y-2">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">Statuslar</span>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">{{ $t('common.status') }}</span>
                 <div v-for="st in byStatus" :key="st.status" class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg">
-                  <span class="font-semibold text-slate-700">{{ getStatusLabel(st.status) }}</span>
+                  <span class="font-semibold text-slate-700">{{ getStatusLabel(st.status as VehicleStatus) }}</span>
                   <el-tag size="small" type="primary" effect="dark" class="font-bold">{{ st.count }}</el-tag>
                 </div>
               </div>
 
               <!-- Locations -->
               <div class="space-y-2">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">Ýerleşýän Ýerleri</span>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">{{ $t('common.location') }}</span>
                 <div v-for="loc in byLocation" :key="loc.location" class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg">
-                  <span class="font-semibold text-slate-700">{{ getLocationLabel(loc.location) }}</span>
+                  <span class="font-semibold text-slate-700">{{ getLocationLabel(loc.location as VehicleLocation) }}</span>
                   <el-tag size="small" type="success" effect="dark" class="font-bold">{{ loc.count }}</el-tag>
                 </div>
               </div>
@@ -297,17 +297,17 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-lg font-bold text-slate-900">Hasabat Düzümindäki Awtoulaglar</h3>
-            <p class="text-xs text-slate-500">Saýlanan wagt aralygynda girizilen / işlenen awtoulaglaryň sanawy.</p>
+            <h3 class="text-lg font-bold text-slate-900">{{ $t('vehicles.listTitle') }}</h3>
+            <p class="text-xs text-slate-500">{{ $t('reports.subtitle') }}</p>
           </div>
 
           <el-tag size="large" type="primary" effect="plain" class="font-bold">
-            Jemi {{ vehiclesList.length }} awtoulag
+            {{ $t('common.total') }}: {{ vehiclesList.length }}
           </el-tag>
         </div>
 
-        <el-table :data="vehiclesList" stripe style="width: 100%" empty-text="Awtoulag tapylmady.">
-          <el-table-column label="VIN Kod" min-width="170">
+        <el-table :data="vehiclesList" stripe style="width: 100%" :empty-text="$t('vehicles.emptyList')">
+          <el-table-column :label="$t('vehicles.vinCode')" min-width="170">
             <template #default="{ row }">
               <router-link :to="`/vehicles/${row.vin}`" class="font-mono font-bold text-blue-700 hover:text-blue-900 no-underline">
                 {{ row.vin }}
@@ -315,15 +315,15 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="title" label="Awtoulagyň Ady" min-width="180" />
+          <el-table-column prop="title" :label="$t('vehicles.vehicleName')" min-width="180" />
 
-          <el-table-column label="Marka / Model" min-width="160">
+          <el-table-column :label="$t('vehicles.makeLabel')" min-width="160">
             <template #default="{ row }">
               <span class="text-xs font-semibold text-slate-700">{{ row.make }} {{ row.model }} ({{ row.year }})</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="Status" min-width="140">
+          <el-table-column :label="$t('common.status')" min-width="140">
             <template #default="{ row }">
               <el-tag :type="getStatusTagType(row.status)" size="small" effect="dark" class="font-semibold">
                 {{ getStatusLabel(row.status) }}
@@ -331,13 +331,13 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Ýeri" min-width="160">
+          <el-table-column :label="$t('common.location')" min-width="160">
             <template #default="{ row }">
               <span class="text-xs text-slate-700 font-medium">{{ getLocationLabel(row.location) }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="Jogapkär Işgär" min-width="160">
+          <el-table-column :label="$t('vehicles.owner')" min-width="160">
             <template #default="{ row }">
               <span v-if="row.current_owner_detail" class="text-xs text-slate-800 font-semibold flex items-center gap-1">
                 <el-icon class="text-emerald-600"><User /></el-icon>
@@ -347,7 +347,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Jemi Çykdajy" min-width="140" align="right">
+          <el-table-column :label="$t('vehicles.totalExpenses')" min-width="140" align="right">
             <template #default="{ row }">
               <span class="font-mono font-bold text-emerald-700 text-sm">${{ row.total_expenses }}</span>
             </template>
@@ -363,9 +363,24 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Vehicle, VehicleStatus, VehicleLocation } from '@/types'
+import {
+  DataAnalysis,
+  Refresh,
+  Filter,
+  Van,
+  Money,
+  Check,
+  Lock,
+  PieChart,
+  TrendCharts,
+  Compass,
+  User
+} from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const loading = ref(false)
 const periodType = ref('all')
 
@@ -432,7 +447,7 @@ const fetchReports = async () => {
     byExpenseStage.value = data.by_expense_stage || []
     vehiclesList.value = data.vehicles || []
   } catch (err) {
-    ElMessage.error('Hasabat maglumatlary ýüklenmedi.')
+    ElMessage.error(t('common.error'))
   } finally {
     loading.value = false
   }
@@ -444,13 +459,13 @@ onMounted(() => {
 
 const getPeriodLabel = (type: string) => {
   switch (type) {
-    case 'all': return 'Ähli döwür'
-    case 'day': return 'Takyk Gün'
-    case 'day_range': return 'Günler aralygy'
-    case 'month': return 'Takyk Aý'
-    case 'month_range': return 'Aýlar aralygy'
-    case 'year': return 'Takyk Ýyl'
-    case 'year_range': return 'Ýyllar aralygy'
+    case 'all': return t('reports.periodAll')
+    case 'day': return t('reports.periodDay')
+    case 'day_range': return t('reports.periodDayRange')
+    case 'month': return t('reports.periodMonth')
+    case 'month_range': return t('reports.periodMonthRange')
+    case 'year': return t('reports.periodYear')
+    case 'year_range': return t('reports.periodYearRange')
     default: return type
   }
 }
@@ -482,20 +497,20 @@ const getStatusTagType = (status: VehicleStatus) => {
 
 const getStatusLabel = (status: VehicleStatus) => {
   switch (status) {
-    case 'PURCHASED': return 'Satyn alyndy'
-    case 'IN_TRANSIT': return 'Ýolda'
-    case 'ARRIVED_TKM': return 'TKM-a geldi'
-    case 'SOLD': return 'Satyldy'
+    case 'PURCHASED': return t('vehicles.statusPurchased')
+    case 'IN_TRANSIT': return t('vehicles.statusInTransit')
+    case 'ARRIVED_TKM': return t('vehicles.statusArrivedTkm')
+    case 'SOLD': return t('vehicles.statusSold')
     default: return status
   }
 }
 
 const getLocationLabel = (loc: VehicleLocation) => {
   switch (loc) {
-    case 'USA_COPART': return 'Amerika (Copart)'
-    case 'SHIPPING_TRANSIT': return 'Ýük daşama'
-    case 'GEORGIA': return 'Gruziýa'
-    case 'TURKMENISTAN_INTERNAL': return 'Türkmenistan'
+    case 'USA_COPART': return t('vehicles.locUsaCopart')
+    case 'SHIPPING_TRANSIT': return t('vehicles.locShippingTransit')
+    case 'GEORGIA': return t('vehicles.locGeorgia')
+    case 'TURKMENISTAN_INTERNAL': return t('vehicles.locTurkmenistanInternal')
     default: return loc
   }
 }

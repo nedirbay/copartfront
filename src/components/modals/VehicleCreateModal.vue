@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="Täze Awtoulag Hasaba Almak"
+    :title="$t('vehicles.createModalTitle')"
     width="580px"
     class="top-modal"
     append-to-body
@@ -11,14 +11,14 @@
     <el-form :model="form" :rules="rules" ref="formRef" label-position="top">
       <div class="grid grid-cols-2 gap-4">
         
-        <el-form-item label="VIN Kod (17 belgi)" prop="vin" class="col-span-2">
-          <el-input v-model="form.vin" placeholder="Mysal: 1HGCR2F83HA000000" maxlength="17" show-word-limit uppercase />
+        <el-form-item :label="$t('vehicles.vinLabel')" prop="vin" class="col-span-2">
+          <el-input v-model="form.vin" :placeholder="$t('vehicles.vinPlaceholder')" maxlength="17" show-word-limit uppercase />
         </el-form-item>
 
-        <el-form-item label="Markasy (Make)" prop="make">
+        <el-form-item :label="$t('vehicles.makeLabel')" prop="make">
           <el-select
             v-model="form.make"
-            placeholder="Markany saýlaň"
+            :placeholder="$t('vehicles.makePlaceholder')"
             filterable
             allow-create
             class="!w-full"
@@ -33,10 +33,10 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Modeli" prop="model">
+        <el-form-item :label="$t('vehicles.modelLabel')" prop="model">
           <el-select
             v-model="form.model"
-            placeholder="Modeli saýlaň"
+            :placeholder="$t('vehicles.modelPlaceholder')"
             filterable
             allow-create
             :disabled="!form.make"
@@ -53,18 +53,18 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Ýyly" prop="year">
+        <el-form-item :label="$t('vehicles.yearLabel')" prop="year">
           <el-input-number v-model="form.year" :min="1990" :max="2030" class="!w-full" @change="autoFillTitle" />
         </el-form-item>
 
-        <el-form-item label="Awtoulagyň Ady (Sözbaşysy)" prop="title">
-          <el-input v-model="form.title" placeholder="Mysal: Toyota Camry 2022" />
+        <el-form-item :label="$t('vehicles.titleLabel')" prop="title">
+          <el-input v-model="form.title" :placeholder="$t('vehicles.titlePlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="Reňki" prop="color">
+        <el-form-item :label="$t('vehicles.colorLabel')" prop="color">
           <el-select
             v-model="form.color"
-            placeholder="Reňki saýlaň ýa-da giriziň"
+            :placeholder="$t('vehicles.colorPlaceholder')"
             filterable
             allow-create
             class="!w-full"
@@ -78,35 +78,34 @@
           </el-select>
         </el-form-item>
 
-
-        <el-form-item label="Probeg (Ýörelen ýoly, mil)" prop="mileage">
+        <el-form-item :label="$t('vehicles.mileageLabel')" prop="mileage">
           <el-input-number v-model="form.mileage" :min="0" class="!w-full" />
         </el-form-item>
 
-        <el-form-item label="Häzirki Statusy" prop="status">
+        <el-form-item :label="$t('vehicles.statusLabel')" prop="status">
           <el-select v-model="form.status" class="!w-full">
             <el-option
               v-for="st in statusesList"
               :key="st.code"
-              :label="st.name"
+              :label="getStatusLabel(st.code)"
               :value="st.code"
             />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Ýerleşýän Ýeri" prop="location">
+        <el-form-item :label="$t('vehicles.locationLabel')" prop="location">
           <el-select v-model="form.location" class="!w-full">
             <el-option
               v-for="loc in locationsList"
               :key="loc.code"
-              :label="loc.name"
+              :label="getLocationLabel(loc.code)"
               :value="loc.code"
             />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Işgäre Berkitmek (Assign to Employee)" prop="current_owner" class="col-span-2">
-          <el-select v-model="form.current_owner" placeholder="Işgär saýlaň (mejbury däl)" clearable class="!w-full">
+        <el-form-item :label="$t('vehicles.assignLabel')" prop="current_owner" class="col-span-2">
+          <el-select v-model="form.current_owner" :placeholder="$t('vehicles.assignPlaceholder')" clearable class="!w-full">
             <el-option
               v-for="emp in employeesList"
               :key="emp.id"
@@ -117,7 +116,7 @@
         </el-form-item>
 
         <!-- Photo Upload -->
-        <el-form-item label="Awtoulagyň Suraty" class="col-span-2">
+        <el-form-item :label="$t('vehicles.photoLabel')" class="col-span-2">
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
             <div
               v-if="photoPreview"
@@ -129,12 +128,12 @@
                 @click="removePhoto"
                 class="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium"
               >
-                <el-icon class="mr-1"><Delete /></el-icon> Aýyr
+                <el-icon class="mr-1"><Delete /></el-icon> {{ $t('vehicles.removePhotoBtn') }}
               </button>
             </div>
             <div v-else class="w-32 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0">
               <el-icon class="text-2xl"><Picture /></el-icon>
-              <span class="text-[11px] mt-1">Surat saýlanmady</span>
+              <span class="text-[11px] mt-1">{{ $t('common.noPhoto') }}</span>
             </div>
 
             <div class="space-y-1">
@@ -147,10 +146,10 @@
               />
               <el-button @click="triggerPhotoSelect">
                 <el-icon class="mr-1"><Upload /></el-icon>
-                {{ photoPreview ? 'Suraty Çalyş' : 'Surat Ýükle' }}
+                {{ photoPreview ? $t('vehicles.changePhotoBtn') : $t('vehicles.uploadPhotoBtn') }}
               </el-button>
               <p class="text-xs text-slate-400 mt-1">
-                Awtoulagyň esasy suratyny ýükläp bilersiňiz (JPG, PNG, WEBP).
+                {{ $t('vehicles.photoHint') }}
               </p>
             </div>
           </div>
@@ -161,8 +160,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <el-button @click="visible = false">Ýapmak</el-button>
-        <el-button type="primary" :loading="loading" @click="submitForm">Hasaba Al</el-button>
+        <el-button @click="visible = false">{{ $t('common.close') }}</el-button>
+        <el-button type="primary" :loading="loading" @click="submitForm">{{ $t('common.save') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -172,8 +171,10 @@
 import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Make, VehicleModel, DynamicStatus, DynamicLocation, User } from '@/types'
+import { Delete, Picture, Upload } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -183,6 +184,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
   (e: 'created'): void
 }>()
+
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -229,15 +232,41 @@ const form = reactive({
   current_owner: null as number | null
 })
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   vin: [
-    { required: true, message: 'VIN kody giriziň', trigger: 'blur' },
-    { min: 11, max: 17, message: 'VIN kody dogry giriziň', trigger: 'blur' }
+    { required: true, message: t('vehicles.vinLabel'), trigger: 'blur' },
+    { min: 11, max: 17, message: t('vehicles.vinLabel'), trigger: 'blur' }
   ],
-  title: [{ required: true, message: 'Awtoulagyň adyny giriziň', trigger: 'blur' }],
-  make: [{ required: true, message: 'Markasyny saýlaň', trigger: 'change' }],
-  model: [{ required: true, message: 'Modelini saýlaň', trigger: 'change' }],
-  year: [{ required: true, message: 'Ýylyny seçiň', trigger: 'change' }],
+  title: [{ required: true, message: t('vehicles.titleLabel'), trigger: 'blur' }],
+  make: [{ required: true, message: t('vehicles.makeLabel'), trigger: 'change' }],
+  model: [{ required: true, message: t('vehicles.modelLabel'), trigger: 'change' }],
+  year: [{ required: true, message: t('vehicles.yearLabel'), trigger: 'change' }],
+}))
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'PURCHASED': return t('vehicles.statusPurchased')
+    case 'IN_TRANSIT': return t('vehicles.statusInTransit')
+    case 'ARRIVED_TKM': return t('vehicles.statusArrivedTkm')
+    case 'SOLD': return t('vehicles.statusSold')
+    default: {
+      const found = statusesList.value.find(s => s.code === status)
+      return found ? found.name : status
+    }
+  }
+}
+
+const getLocationLabel = (loc: string) => {
+  switch (loc) {
+    case 'USA_COPART': return t('vehicles.locUsaCopart')
+    case 'SHIPPING_TRANSIT': return t('vehicles.locShippingTransit')
+    case 'GEORGIA': return t('vehicles.locGeorgia')
+    case 'TURKMENISTAN_INTERNAL': return t('vehicles.locTurkmenistanInternal')
+    default: {
+      const found = locationsList.value.find(l => l.code === loc)
+      return found ? found.name : loc
+    }
+  }
 }
 
 const loadDictionaries = async () => {
@@ -342,11 +371,11 @@ const submitForm = async () => {
             'Content-Type': 'multipart/form-data'
           }
         })
-        ElMessage.success('Täze awtoulag üstünlikli hasaba alyndy!')
+        ElMessage.success(t('vehicles.createSuccess'))
         visible.value = false
         emit('created')
       } catch (err: any) {
-        const msg = err.response?.data?.vin?.[0] || err.response?.data?.detail || 'Awtoulag döredilende ýalňyşlyk ýüze çykdy.'
+        const msg = err.response?.data?.vin?.[0] || err.response?.data?.detail || t('common.error')
         ElMessage.error(msg)
       } finally {
         loading.value = false

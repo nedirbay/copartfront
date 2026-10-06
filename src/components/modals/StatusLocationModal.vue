@@ -1,43 +1,43 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="Status we Ýerleşýän Ýerini Täzelemek"
+    :title="$t('vehicles.editStatusBtn')"
     width="500px"
     destroy-on-close
     @open="loadDictionaries"
   >
     <el-form :model="form" label-position="top">
-      <el-form-item label="Täze Status">
+      <el-form-item :label="$t('vehicles.statusLabel')">
         <el-select v-model="form.status" class="!w-full">
           <el-option
             v-for="st in statusesList"
             :key="st.code"
-            :label="st.name"
+            :label="getStatusLabel(st.code)"
             :value="st.code"
           />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="Täze Ýerleşýän Ýeri">
+      <el-form-item :label="$t('vehicles.locationLabel')">
         <el-select v-model="form.location" class="!w-full">
           <el-option
             v-for="loc in locationsList"
             :key="loc.code"
-            :label="loc.name"
+            :label="getLocationLabel(loc.code)"
             :value="loc.code"
           />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="Bellik (Taryh üçin)">
-        <el-input v-model="form.note" type="textarea" :rows="3" placeholder="Mysal: Gruziýa portuna geldi, konteýner açyldy." />
+      <el-form-item :label="$t('common.note')">
+        <el-input v-model="form.note" type="textarea" :rows="3" />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <el-button @click="visible = false">Ýapmak</el-button>
-        <el-button type="primary" :loading="loading" @click="submitUpdate">Täzele</el-button>
+        <el-button @click="visible = false">{{ $t('common.close') }}</el-button>
+        <el-button type="primary" :loading="loading" @click="submitUpdate">{{ $t('common.save') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Vehicle, DynamicStatus, DynamicLocation } from '@/types'
 
@@ -58,6 +59,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
   (e: 'updated'): void
 }>()
+
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -73,6 +76,32 @@ const form = reactive({
   location: '',
   note: ''
 })
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'PURCHASED': return t('vehicles.statusPurchased')
+    case 'IN_TRANSIT': return t('vehicles.statusInTransit')
+    case 'ARRIVED_TKM': return t('vehicles.statusArrivedTkm')
+    case 'SOLD': return t('vehicles.statusSold')
+    default: {
+      const found = statusesList.value.find(s => s.code === status)
+      return found ? found.name : status
+    }
+  }
+}
+
+const getLocationLabel = (loc: string) => {
+  switch (loc) {
+    case 'USA_COPART': return t('vehicles.locUsaCopart')
+    case 'SHIPPING_TRANSIT': return t('vehicles.locShippingTransit')
+    case 'GEORGIA': return t('vehicles.locGeorgia')
+    case 'TURKMENISTAN_INTERNAL': return t('vehicles.locTurkmenistanInternal')
+    default: {
+      const found = locationsList.value.find(l => l.code === loc)
+      return found ? found.name : loc
+    }
+  }
+}
 
 watch(() => props.vehicle, (newVeh) => {
   if (newVeh) {
@@ -98,11 +127,11 @@ const submitUpdate = async () => {
   loading.value = true
   try {
     await api.post(`/vehicles/${props.vehicle.vin}/update-status-location/`, form)
-    ElMessage.success('Awtoulagyň statusy we ýerleşýän ýeri täzelendi!')
+    ElMessage.success(t('common.success'))
     visible.value = false
     emit('updated')
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.detail || 'Täzelemekde ýalňyşlyk döredi.')
+    ElMessage.error(err.response?.data?.detail || t('common.error'))
   } finally {
     loading.value = false
   }
