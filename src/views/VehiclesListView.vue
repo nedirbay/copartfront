@@ -65,8 +65,37 @@
         stripe
         empty-text="Awtoulag tapylmady."
       >
+        <!-- Photo Column -->
+        <el-table-column label="Surat" width="90" align="center">
+          <template #default="{ row }">
+            <div class="flex items-center justify-center">
+              <el-image
+                v-if="row.photo_url"
+                :src="row.photo_url"
+                :preview-src-list="[row.photo_url]"
+                preview-teleported
+                fit="cover"
+                class="w-12 h-10 rounded-lg shadow-2xs border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                <template #error>
+                  <div class="w-12 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+              <div
+                v-else
+                class="w-12 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400"
+                title="Surat ýok"
+              >
+                <el-icon class="text-base"><Picture /></el-icon>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
         <!-- VIN Code Column -->
-        <el-table-column label="VIN Code" min-width="180">
+        <el-table-column label="VIN Code" min-width="170">
           <template #default="{ row }">
             <router-link :to="`/vehicles/${row.vin}`" class="font-mono font-bold text-blue-700 hover:text-blue-900 no-underline">
               {{ row.vin }}
@@ -119,16 +148,42 @@
         </el-table-column>
 
         <!-- Action -->
-        <el-table-column label="Amal" min-width="110" align="center">
+        <el-table-column label="Amal" min-width="190" align="center">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              size="small"
-              @click="$router.push(`/vehicles/${row.vin}`)"
-            >
-              Jikme-jik
-            </el-button>
+            <div class="flex items-center justify-center gap-1">
+              <el-tooltip content="Jikme-jik görmek" placement="top">
+                <el-button
+                  type="primary"
+                  link
+                  size="small"
+                  @click="$router.push(`/vehicles/${row.vin}`)"
+                >
+                  <el-icon class="mr-0.5"><View /></el-icon> Gör
+                </el-button>
+              </el-tooltip>
+
+              <el-tooltip v-if="canEditRow(row)" content="Awtoulagy üýtgetmek" placement="top">
+                <el-button
+                  type="warning"
+                  link
+                  size="small"
+                  @click="openEditModal(row)"
+                >
+                  <el-icon class="mr-0.5"><Edit /></el-icon> Üýtget
+                </el-button>
+              </el-tooltip>
+
+              <el-tooltip v-if="authStore.isAdmin" content="Awtoulagy pozmak" placement="top">
+                <el-button
+                  type="danger"
+                  link
+                  size="small"
+                  @click="handleDeleteVehicle(row)"
+                >
+                  <el-icon class="mr-0.5"><Delete /></el-icon> Poz
+                </el-button>
+              </el-tooltip>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -136,6 +191,11 @@
 
     <!-- Modals -->
     <VehicleCreateModal v-model="showCreateModal" @created="fetchVehicles" />
+    <VehicleEditModal
+      v-model="showEditModal"
+      :vehicle="selectedVehicleForEdit"
+      @updated="fetchVehicles"
+    />
 
   </div>
 </template>
@@ -143,9 +203,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import api from '@/api'
 import type { Vehicle, DynamicStatus, DynamicLocation } from '@/types'
 import VehicleCreateModal from '@/components/modals/VehicleCreateModal.vue'
+import VehicleEditModal from '@/components/modals/VehicleEditModal.vue'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -155,6 +217,8 @@ const searchQuery = ref('')
 const filterStatus = ref('')
 const filterLocation = ref('')
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const selectedVehicleForEdit = ref<Vehicle | null>(null)
 
 const statusesList = ref<DynamicStatus[]>([])
 const locationsList = ref<DynamicLocation[]>([])
@@ -233,6 +297,41 @@ const getLocationLabel = (loc: string) => {
     case 'GEORGIA': return 'Gruziýa'
     case 'TURKMENISTAN_INTERNAL': return 'Türkmenistan'
     default: return loc
+  }
+}
+
+const canEditRow = (row: Vehicle) => {
+  if (authStore.isAdmin) return true
+  if (row.is_handed_over && row.current_owner === authStore.user?.id) return true
+  return false
+}
+
+const openEditModal = (row: Vehicle) => {
+  selectedVehicleForEdit.value = row
+  showEditModal.value = true
+}
+
+const handleDeleteVehicle = async (row: Vehicle) => {
+  try {
+    await ElMessageBox.confirm(
+      `"${row.title}" (VIN: ${row.vin}) awtoulagy pozmak isleýärsiňizmi? Oňa degişli ähli taryh we çykdajylar hem pozular.`,
+      'Awtoulagy Pozmak',
+      {
+        confirmButtonText: 'Hawa, Poz',
+        cancelButtonText: 'Ýatyr',
+        confirmButtonClass: 'el-button--danger',
+        type: 'warning'
+      }
+    )
+
+    await api.delete(`/vehicles/${row.vin}/`)
+    ElMessage.success('Awtoulag üstünlikli pozuldy!')
+    await fetchVehicles()
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      const msg = err.response?.data?.detail || 'Pozmakda ýalňyşlyk ýüze çykdy.'
+      ElMessage.error(msg)
+    }
   }
 }
 </script>

@@ -1,18 +1,24 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="Täze Awtoulag Hasaba Almak"
-    width="580px"
+    title="Awtoulagy Üýtgetmek (Edit)"
+    width="600px"
     destroy-on-close
-    @open="loadDictionaries"
+    @open="initForm"
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-position="top">
       <div class="grid grid-cols-2 gap-4">
         
-        <el-form-item label="VIN Kod (17 belgi)" prop="vin" class="col-span-2">
-          <el-input v-model="form.vin" placeholder="Mysal: 1HGCR2F83HA000000" maxlength="17" show-word-limit uppercase />
+        <!-- VIN (Read only) -->
+        <el-form-item label="VIN Kod" class="col-span-2">
+          <el-input :model-value="vehicle?.vin" disabled>
+            <template #prefix>
+              <span class="font-mono text-slate-500 font-bold">VIN:</span>
+            </template>
+          </el-input>
         </el-form-item>
 
+        <!-- Make -->
         <el-form-item label="Markasy (Make)" prop="make">
           <el-select
             v-model="form.make"
@@ -31,6 +37,7 @@
           </el-select>
         </el-form-item>
 
+        <!-- Model -->
         <el-form-item label="Modeli" prop="model">
           <el-select
             v-model="form.model"
@@ -51,14 +58,17 @@
           </el-select>
         </el-form-item>
 
+        <!-- Year -->
         <el-form-item label="Ýyly" prop="year">
-          <el-input-number v-model="form.year" :min="1990" :max="2030" class="!w-full" @change="autoFillTitle" />
+          <el-input-number v-model="form.year" :min="1990" :max="2035" class="!w-full" @change="autoFillTitle" />
         </el-form-item>
 
-        <el-form-item label="Awtoulagyň Ady (Sözbaşysy)" prop="title">
+        <!-- Title -->
+        <el-form-item label="Awtoulagyň Ady" prop="title">
           <el-input v-model="form.title" placeholder="Mysal: Toyota Camry 2022" />
         </el-form-item>
 
+        <!-- Color -->
         <el-form-item label="Reňki" prop="color">
           <el-select
             v-model="form.color"
@@ -76,12 +86,13 @@
           </el-select>
         </el-form-item>
 
-
-        <el-form-item label="Probeg (Ýörelen ýoly, mil)" prop="mileage">
+        <!-- Mileage -->
+        <el-form-item label="Probeg (mil)" prop="mileage">
           <el-input-number v-model="form.mileage" :min="0" class="!w-full" />
         </el-form-item>
 
-        <el-form-item label="Häzirki Statusy" prop="status">
+        <!-- Status -->
+        <el-form-item label="Statusy" prop="status">
           <el-select v-model="form.status" class="!w-full">
             <el-option
               v-for="st in statusesList"
@@ -92,6 +103,7 @@
           </el-select>
         </el-form-item>
 
+        <!-- Location -->
         <el-form-item label="Ýerleşýän Ýeri" prop="location">
           <el-select v-model="form.location" class="!w-full">
             <el-option
@@ -103,8 +115,9 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Işgäre Berkitmek (Assign to Employee)" prop="current_owner" class="col-span-2">
-          <el-select v-model="form.current_owner" placeholder="Işgär saýlaň (mejbury däl)" clearable class="!w-full">
+        <!-- Owner (Admin only) -->
+        <el-form-item v-if="authStore.isAdmin" label="Jogapkär Işgär (Owner)" prop="current_owner" class="col-span-2">
+          <el-select v-model="form.current_owner" placeholder="Işgär saýlaň" clearable class="!w-full">
             <el-option
               v-for="emp in employeesList"
               :key="emp.id"
@@ -114,14 +127,15 @@
           </el-select>
         </el-form-item>
 
-        <!-- Photo Upload -->
+        <!-- Photo Section -->
         <el-form-item label="Awtoulagyň Suraty" class="col-span-2">
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
+            <!-- Current / Preview Image -->
             <div
               v-if="photoPreview"
               class="relative w-32 h-24 rounded-xl overflow-hidden border border-slate-200 shadow-2xs group shrink-0"
             >
-              <img :src="photoPreview" class="w-full h-full object-cover" alt="Preview" />
+              <img :src="photoPreview" class="w-full h-full object-cover" alt="Vehicle preview" />
               <button
                 type="button"
                 @click="removePhoto"
@@ -132,9 +146,10 @@
             </div>
             <div v-else class="w-32 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0">
               <el-icon class="text-2xl"><Picture /></el-icon>
-              <span class="text-[11px] mt-1">Surat saýlanmady</span>
+              <span class="text-[11px] mt-1">Surat ýok</span>
             </div>
 
+            <!-- Upload Controls -->
             <div class="space-y-1">
               <input
                 type="file"
@@ -145,10 +160,10 @@
               />
               <el-button @click="triggerPhotoSelect">
                 <el-icon class="mr-1"><Upload /></el-icon>
-                {{ photoPreview ? 'Suraty Çalyş' : 'Surat Ýükle' }}
+                {{ photoPreview ? 'Suraty Çalyş' : 'Täze Surat Ýükle' }}
               </el-button>
               <p class="text-xs text-slate-400 mt-1">
-                Awtoulagyň esasy suratyny ýükläp bilersiňiz (JPG, PNG, WEBP).
+                JPG, PNG, WEBP formatlar goldanylýar (iň köp 10MB).
               </p>
             </div>
           </div>
@@ -159,8 +174,10 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <el-button @click="visible = false">Ýapmak</el-button>
-        <el-button type="primary" :loading="loading" @click="submitForm">Hasaba Al</el-button>
+        <el-button @click="visible = false">Ýatyr</el-button>
+        <el-button type="primary" :loading="loading" @click="submitForm">
+          Ýatda Sakla
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -170,17 +187,21 @@
 import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
 import api from '@/api'
-import type { Make, VehicleModel, DynamicStatus, DynamicLocation, User } from '@/types'
+import type { Vehicle, Make, VehicleModel, DynamicStatus, DynamicLocation, User } from '@/types'
 
 const props = defineProps<{
   modelValue: boolean
+  vehicle: Vehicle | null
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
-  (e: 'created'): void
+  (e: 'updated'): void
 }>()
+
+const authStore = useAuthStore()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -191,15 +212,17 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 const loadingModels = ref(false)
 
-const photoInputRef = ref<HTMLInputElement | null>(null)
-const photoFile = ref<File | null>(null)
-const photoPreview = ref<string>('')
-
 const makesList = ref<Make[]>([])
 const modelsList = ref<VehicleModel[]>([])
 const statusesList = ref<DynamicStatus[]>([])
 const locationsList = ref<DynamicLocation[]>([])
 const employeesList = ref<User[]>([])
+
+const photoInputRef = ref<HTMLInputElement | null>(null)
+const photoFile = ref<File | null>(null)
+const photoPreview = ref<string>('')
+const photoRemoved = ref(false)
+
 const colorsList = ref([
   'Gara',
   'Ak',
@@ -215,7 +238,6 @@ const colorsList = ref([
 ])
 
 const form = reactive({
-  vin: '',
   title: '',
   make: '',
   model: '',
@@ -228,10 +250,6 @@ const form = reactive({
 })
 
 const rules: FormRules = {
-  vin: [
-    { required: true, message: 'VIN kody giriziň', trigger: 'blur' },
-    { min: 11, max: 17, message: 'VIN kody dogry giriziň', trigger: 'blur' }
-  ],
   title: [{ required: true, message: 'Awtoulagyň adyny giriziň', trigger: 'blur' }],
   make: [{ required: true, message: 'Markasyny saýlaň', trigger: 'change' }],
   model: [{ required: true, message: 'Modelini saýlaň', trigger: 'change' }],
@@ -250,48 +268,37 @@ const loadDictionaries = async () => {
     statusesList.value = Array.isArray(statusesRes.data) ? statusesRes.data : statusesRes.data.results || []
     locationsList.value = Array.isArray(locationsRes.data) ? locationsRes.data : locationsRes.data.results || []
     employeesList.value = Array.isArray(empRes.data) ? empRes.data : empRes.data.results || []
-
-    if (statusesList.value.length > 0 && !form.status) {
-      form.status = statusesList.value[0].code
-    }
-    if (locationsList.value.length > 0 && !form.location) {
-      form.location = locationsList.value[0].code
-    }
-    photoFile.value = null
-    photoPreview.value = ''
   } catch (err) {}
 }
 
-const triggerPhotoSelect = () => {
-  photoInputRef.value?.click()
-}
-
-const handlePhotoChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    const file = target.files[0]
-    photoFile.value = file
-    photoPreview.value = URL.createObjectURL(file)
-  }
-}
-
-const removePhoto = () => {
+const initForm = async () => {
+  await loadDictionaries()
   photoFile.value = null
-  photoPreview.value = ''
-  if (photoInputRef.value) {
-    photoInputRef.value.value = ''
+  photoRemoved.value = false
+
+  if (props.vehicle) {
+    form.title = props.vehicle.title
+    form.make = props.vehicle.make
+    form.model = props.vehicle.model
+    form.year = props.vehicle.year
+    form.color = props.vehicle.color
+    form.mileage = props.vehicle.mileage
+    form.status = props.vehicle.status
+    form.location = props.vehicle.location
+    form.current_owner = props.vehicle.current_owner
+
+    photoPreview.value = props.vehicle.photo_url || ''
+
+    if (form.make) {
+      await fetchModelsForMake(form.make)
+    }
   }
 }
 
-const handleMakeChange = async (makeName: string) => {
-  form.model = ''
-  modelsList.value = []
-  if (!makeName) return
-
-  // Find make ID if exists
-  const foundMake = makesList.value.find(m => m.name.toLowerCase() === makeName.toLowerCase())
+const fetchModelsForMake = async (makeName: string) => {
   loadingModels.value = true
   try {
+    const foundMake = makesList.value.find(m => m.name.toLowerCase() === makeName.toLowerCase())
     const url = foundMake
       ? `/vehicles/dictionaries/models/?make_id=${foundMake.id}`
       : `/vehicles/dictionaries/models/?make=${encodeURIComponent(makeName)}`
@@ -300,6 +307,14 @@ const handleMakeChange = async (makeName: string) => {
   } catch (err) {
   } finally {
     loadingModels.value = false
+  }
+}
+
+const handleMakeChange = async (makeName: string) => {
+  form.model = ''
+  modelsList.value = []
+  if (makeName) {
+    await fetchModelsForMake(makeName)
   }
   autoFillTitle()
 }
@@ -312,14 +327,37 @@ const autoFillTitle = () => {
   }
 }
 
+const triggerPhotoSelect = () => {
+  photoInputRef.value?.click()
+}
+
+const handlePhotoChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    const file = target.files[0]
+    photoFile.value = file
+    photoRemoved.value = false
+    photoPreview.value = URL.createObjectURL(file)
+  }
+}
+
+const removePhoto = () => {
+  photoFile.value = null
+  photoPreview.value = ''
+  photoRemoved.value = true
+  if (photoInputRef.value) {
+    photoInputRef.value.value = ''
+  }
+}
+
 const submitForm = async () => {
-  if (!formRef.value) return
+  const currentVehicle = props.vehicle
+  if (!formRef.value || !currentVehicle) return
   await formRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
       try {
         const formData = new FormData()
-        formData.append('vin', form.vin)
         formData.append('title', form.title)
         formData.append('make', form.make)
         formData.append('model', form.model)
@@ -328,23 +366,27 @@ const submitForm = async () => {
         formData.append('mileage', String(form.mileage))
         formData.append('status', form.status)
         formData.append('location', form.location)
-        if (form.current_owner) {
+        if (form.current_owner !== null && form.current_owner !== undefined) {
           formData.append('current_owner', String(form.current_owner))
         }
+
         if (photoFile.value) {
           formData.append('photo', photoFile.value)
+        } else if (photoRemoved.value) {
+          formData.append('photo', '')
         }
 
-        await api.post('/vehicles/', formData, {
+        await api.patch(`/vehicles/${currentVehicle.vin}/`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         })
-        ElMessage.success('Täze awtoulag üstünlikli hasaba alyndy!')
+
+        ElMessage.success('Awtoulag maglumatlary üstünlikli täzelendi!')
         visible.value = false
-        emit('created')
+        emit('updated')
       } catch (err: any) {
-        const msg = err.response?.data?.vin?.[0] || err.response?.data?.detail || 'Awtoulag döredilende ýalňyşlyk ýüze çykdy.'
+        const msg = err.response?.data?.detail || 'Üýtgetmekde ýalňyşlyk ýüze çykdy.'
         ElMessage.error(msg)
       } finally {
         loading.value = false

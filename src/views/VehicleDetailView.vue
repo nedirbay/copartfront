@@ -38,42 +38,82 @@
 
     <!-- Vehicle Main Header Card -->
     <div v-if="vehicle" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-      <div class="space-y-2">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="bg-blue-50 text-blue-800 font-mono font-bold text-lg px-3 py-1 rounded-lg border border-blue-200">
-            {{ vehicle.vin }}
-          </span>
-          <el-tag :type="getStatusTagType(vehicle.status)" effect="dark" size="large" class="font-semibold">
-            {{ getStatusLabel(vehicle.status) }}
-          </el-tag>
-
-          <!-- Status Badge: Berkidilen vs Tabşyrylan -->
-          <el-tag v-if="vehicle.is_handed_over" type="success" effect="light" class="font-semibold">
-            <el-icon class="mr-1"><Check /></el-icon> Awtoulag Tabşyrylan (Işgär Jogapkär)
-          </el-tag>
-          <el-tag v-else-if="vehicle.pending_handover_owner" type="warning" effect="light" class="font-semibold">
-            <el-icon class="mr-1"><Loading /></el-icon> Tabşyrylyşa Garaşylýar (@{{ vehicle.pending_handover_owner_detail?.username }})
-          </el-tag>
-          <el-tag v-else type="info" effect="light" class="font-semibold">
-            <el-icon class="mr-1"><Lock /></el-icon> Awtoulag Berkidilen (Tabşyrylmadyk)
-          </el-tag>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+        <!-- Vehicle Photo Display with Preview -->
+        <div class="relative shrink-0">
+          <el-image
+            v-if="vehicle.photo_url"
+            :src="vehicle.photo_url"
+            :preview-src-list="[vehicle.photo_url]"
+            preview-teleported
+            fit="cover"
+            class="w-28 h-24 sm:w-32 sm:h-28 rounded-2xl shadow-xs border border-slate-200 cursor-pointer hover:opacity-95 transition-all"
+          >
+            <template #error>
+              <div class="w-28 h-24 sm:w-32 sm:h-28 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                <el-icon class="text-3xl"><Picture /></el-icon>
+              </div>
+            </template>
+          </el-image>
+          <div
+            v-else
+            class="w-28 h-24 sm:w-32 sm:h-28 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-200 flex flex-col items-center justify-center text-slate-400"
+          >
+            <el-icon class="text-3xl"><Picture /></el-icon>
+            <span class="text-[11px] mt-1 font-medium">Surat ýok</span>
+          </div>
         </div>
 
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
-          {{ vehicle.title }}
-        </h1>
-        
-        <p class="text-sm text-slate-500 flex items-center gap-4">
-          <span><strong class="text-slate-700">Marka/Model:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</span>
-          <span>&bull;</span>
-          <span><strong class="text-slate-700">Reňki:</strong> {{ vehicle.color }}</span>
-          <span>&bull;</span>
-          <span><strong class="text-slate-700">Probeg:</strong> {{ vehicle.mileage }} mil</span>
-        </p>
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="bg-blue-50 text-blue-800 font-mono font-bold text-lg px-3 py-1 rounded-lg border border-blue-200">
+              {{ vehicle.vin }}
+            </span>
+            <el-tag :type="getStatusTagType(vehicle.status)" effect="dark" size="large" class="font-semibold">
+              {{ getStatusLabel(vehicle.status) }}
+            </el-tag>
+
+            <!-- Status Badge: Berkidilen vs Tabşyrylan -->
+            <el-tag v-if="vehicle.is_handed_over" type="success" effect="light" class="font-semibold">
+              <el-icon class="mr-1"><Check /></el-icon> Awtoulag Tabşyrylan (Işgär Jogapkär)
+            </el-tag>
+            <el-tag v-else-if="vehicle.pending_handover_owner" type="warning" effect="light" class="font-semibold">
+              <el-icon class="mr-1"><Loading /></el-icon> Tabşyrylyşa Garaşylýar (@{{ vehicle.pending_handover_owner_detail?.username }})
+            </el-tag>
+            <el-tag v-else type="info" effect="light" class="font-semibold">
+              <el-icon class="mr-1"><Lock /></el-icon> Awtoulag Berkidilen (Tabşyrylmadyk)
+            </el-tag>
+          </div>
+
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
+            {{ vehicle.title }}
+          </h1>
+          
+          <p class="text-sm text-slate-500 flex items-center gap-4">
+            <span><strong class="text-slate-700">Marka/Model:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</span>
+            <span>&bull;</span>
+            <span><strong class="text-slate-700">Reňki:</strong> {{ vehicle.color }}</span>
+            <span>&bull;</span>
+            <span><strong class="text-slate-700">Probeg:</strong> {{ vehicle.mileage }} mil</span>
+          </p>
+        </div>
       </div>
 
       <!-- Action Buttons -->
       <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <!-- Edit Vehicle Button -->
+        <el-button
+          v-if="canEditVehicle"
+          type="warning"
+          plain
+          size="large"
+          class="!rounded-xl"
+          @click="showEditModal = true"
+        >
+          <el-icon class="mr-1.5"><Edit /></el-icon>
+          Üýtget
+        </el-button>
+
         <!-- Admin: Assign to Employee Button -->
         <el-button
           v-if="canAssign"
@@ -108,6 +148,19 @@
         >
           <el-icon class="mr-1.5"><Share /></el-icon>
           Kabul Ediş-Tabşyryş Ugrat
+        </el-button>
+
+        <!-- Admin: Delete Vehicle Button -->
+        <el-button
+          v-if="authStore.isAdmin"
+          type="danger"
+          plain
+          size="large"
+          class="!rounded-xl"
+          @click="handleDeleteCurrentVehicle"
+        >
+          <el-icon class="mr-1.5"><Delete /></el-icon>
+          Poz
         </el-button>
       </div>
     </div>
@@ -326,15 +379,16 @@
     <StatusLocationModal v-model="showStatusModal" :vehicle="vehicle" @updated="refreshData" />
     <HandoverModal v-model="showHandoverModal" :vehicle="vehicle" @updated="refreshData" />
     <ExpenseModal v-model="showExpenseModal" :vin="vin" @created="fetchExpenses" />
+    <VehicleEditModal v-model="showEditModal" :vehicle="vehicle" @updated="refreshData" />
 
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
 import type { Vehicle, VehicleHistoryLog, VehicleExpense, VehicleDocument, VehicleStatus, VehicleLocation } from '@/types'
 
@@ -342,8 +396,10 @@ import AssignModal from '@/components/modals/AssignModal.vue'
 import StatusLocationModal from '@/components/modals/StatusLocationModal.vue'
 import HandoverModal from '@/components/modals/HandoverModal.vue'
 import ExpenseModal from '@/components/modals/ExpenseModal.vue'
+import VehicleEditModal from '@/components/modals/VehicleEditModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const vin = route.params.vin as string
 
@@ -359,6 +415,7 @@ const showAssignModal = ref(false)
 const showStatusModal = ref(false)
 const showHandoverModal = ref(false)
 const showExpenseModal = ref(false)
+const showEditModal = ref(false)
 
 // File Upload state
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -521,6 +578,31 @@ const getLocationLabel = (loc: VehicleLocation) => {
     case 'GEORGIA': return 'Gruziýa'
     case 'TURKMENISTAN_INTERNAL': return 'Türkmenistan'
     default: return loc
+  }
+}
+
+const handleDeleteCurrentVehicle = async () => {
+  if (!vehicle.value) return
+  try {
+    await ElMessageBox.confirm(
+      `"${vehicle.value.title}" (VIN: ${vehicle.value.vin}) awtoulagy pozmak isleýärsiňizmi? Oňa degişli ähli taryh we çykdajylar hem pozular.`,
+      'Awtoulagy Pozmak',
+      {
+        confirmButtonText: 'Hawa, Poz',
+        cancelButtonText: 'Ýatyr',
+        confirmButtonClass: 'el-button--danger',
+        type: 'warning'
+      }
+    )
+
+    await api.delete(`/vehicles/${vehicle.value.vin}/`)
+    ElMessage.success('Awtoulag üstünlikli pozuldy!')
+    router.push('/vehicles')
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      const msg = err.response?.data?.detail || 'Pozmakda ýalňyşlyk ýüze çykdy.'
+      ElMessage.error(msg)
+    }
   }
 }
 </script>

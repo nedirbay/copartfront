@@ -74,6 +74,8 @@ export interface Vehicle {
   is_handed_over: boolean
 
   total_expenses: string
+  photo?: string | null
+  photo_url?: string | null
   created_at: string
   updated_at: string
 }
