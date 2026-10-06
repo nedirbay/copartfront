@@ -2,10 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+html, body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: #f8fafc;
   color: #1e293b;
+}
+
+/* Fullscreen overlay covering 100% of the screen with zero gap at top */
+.el-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 2000 !important;
+}
+
+/* Dialog appearing from top with smooth slide-down */
+.el-dialog.top-modal {
+  border-radius: 1.25rem !important;
+  margin-top: 48px !important;
+  margin-bottom: 48px !important;
+  animation: slideDialogFromTop 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes slideDialogFromTop {
+  0% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

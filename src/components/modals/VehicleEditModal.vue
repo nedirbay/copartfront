@@ -3,6 +3,8 @@
     v-model="visible"
     title="Awtoulagy Üýtgetmek (Edit)"
     width="600px"
+    class="top-modal"
+    append-to-body
     destroy-on-close
     @open="initForm"
   >

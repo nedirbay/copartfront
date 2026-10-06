@@ -3,6 +3,8 @@
     v-model="visible"
     title="Täze Awtoulag Hasaba Almak"
     width="580px"
+    class="top-modal"
+    append-to-body
     destroy-on-close
     @open="loadDictionaries"
   >
