@@ -30,14 +30,11 @@
           </el-form-item>
         </div>
 
-        <el-form-item label="Email">
-          <el-input v-model="form.email" placeholder="merdan@example.com" />
-        </el-form-item>
-
         <el-form-item label="Telefon belgisi">
           <el-input v-model="form.phone_number" placeholder="+99365123456" />
         </el-form-item>
       </el-form>
+
 
       <template #footer>
         <div class="flex justify-end gap-2">
@@ -114,9 +111,9 @@ const form = reactive({
   username: '',
   first_name: '',
   last_name: '',
-  email: '',
   phone_number: ''
 })
+
 
 const rules: FormRules = {
   username: [{ required: true, message: 'Ulanyjy adyny giriziň', trigger: 'blur' }],
@@ -140,8 +137,8 @@ const submitEmployee = async () => {
         form.username = ''
         form.first_name = ''
         form.last_name = ''
-        form.email = ''
         form.phone_number = ''
+
         
         emit('created')
       } catch (err: any) {

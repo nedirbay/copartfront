@@ -4,23 +4,28 @@
     title="Status we Ýerleşýän Ýerini Täzelemek"
     width="500px"
     destroy-on-close
+    @open="loadDictionaries"
   >
     <el-form :model="form" label-position="top">
       <el-form-item label="Täze Status">
         <el-select v-model="form.status" class="!w-full">
-          <el-option label="Satyn alyndy (Purchased)" value="PURCHASED" />
-          <el-option label="Ýolda (In Transit)" value="IN_TRANSIT" />
-          <el-option label="Türkmenistana geldi (Arrived TKM)" value="ARRIVED_TKM" />
-          <el-option label="Satyldy (Sold)" value="SOLD" />
+          <el-option
+            v-for="st in statusesList"
+            :key="st.code"
+            :label="st.name"
+            :value="st.code"
+          />
         </el-select>
       </el-form-item>
 
       <el-form-item label="Täze Ýerleşýän Ýeri">
         <el-select v-model="form.location" class="!w-full">
-          <el-option label="Amerika (Copart)" value="USA_COPART" />
-          <el-option label="Ýük daşama ýola çykaryldy" value="SHIPPING_TRANSIT" />
-          <el-option label="Gruziýa" value="GEORGIA" />
-          <el-option label="Türkmenistan (Içerki ýerleri)" value="TURKMENISTAN_INTERNAL" />
+          <el-option
+            v-for="loc in locationsList"
+            :key="loc.code"
+            :label="loc.name"
+            :value="loc.code"
+          />
         </el-select>
       </el-form-item>
 
@@ -42,7 +47,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
-import type { Vehicle } from '@/types'
+import type { Vehicle, DynamicStatus, DynamicLocation } from '@/types'
 
 const props = defineProps<{
   modelValue: boolean
@@ -60,6 +65,9 @@ const visible = computed({
 })
 
 const loading = ref(false)
+const statusesList = ref<DynamicStatus[]>([])
+const locationsList = ref<DynamicLocation[]>([])
+
 const form = reactive({
   status: '',
   location: '',
@@ -73,6 +81,17 @@ watch(() => props.vehicle, (newVeh) => {
     form.note = ''
   }
 }, { immediate: true })
+
+const loadDictionaries = async () => {
+  try {
+    const [stRes, locRes] = await Promise.all([
+      api.get('/vehicles/dictionaries/statuses/'),
+      api.get('/vehicles/dictionaries/locations/')
+    ])
+    statusesList.value = Array.isArray(stRes.data) ? stRes.data : stRes.data.results || []
+    locationsList.value = Array.isArray(locRes.data) ? locRes.data : locRes.data.results || []
+  } catch (err) {}
+}
 
 const submitUpdate = async () => {
   if (!props.vehicle) return

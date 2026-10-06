@@ -4,10 +4,24 @@
     title="Täze Çykdajy Goşmak"
     width="500px"
     destroy-on-close
+    @open="loadDictionaries"
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-position="top">
       <el-form-item label="Çykdajynyň Ady" prop="title">
-        <el-input v-model="form.title" placeholder="Mysal: Copart Auksion tölegi / Gruziýa Ussa tölegi" />
+        <el-select
+          v-model="form.title"
+          placeholder="Çykdajyny saýlaň ýa-da giriziň"
+          filterable
+          allow-create
+          class="!w-full"
+        >
+          <el-option
+            v-for="item in expenseTypesList"
+            :key="item.id"
+            :label="item.name"
+            :value="item.name"
+          />
+        </el-select>
       </el-form-item>
 
       <div class="grid grid-cols-2 gap-4">
@@ -17,9 +31,12 @@
 
         <el-form-item label="Walýuta" prop="currency">
           <el-select v-model="form.currency" class="!w-full">
-            <el-option label="USD ($)" value="USD" />
-            <el-option label="TMT (m.)" value="TMT" />
-            <el-option label="EUR (€)" value="EUR" />
+            <el-option
+              v-for="curr in currenciesList"
+              :key="curr.code"
+              :label="`${curr.code} (${curr.symbol})`"
+              :value="curr.code"
+            />
           </el-select>
         </el-form-item>
       </div>
@@ -47,6 +64,7 @@ import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
+import type { Currency, ExpenseType } from '@/types'
 
 const props = defineProps<{
   modelValue: boolean
@@ -66,6 +84,9 @@ const visible = computed({
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 
+const expenseTypesList = ref<ExpenseType[]>([])
+const currenciesList = ref<Currency[]>([])
+
 const form = reactive({
   title: '',
   amount: 0,
@@ -75,8 +96,23 @@ const form = reactive({
 })
 
 const rules: FormRules = {
-  title: [{ required: true, message: 'Çykdajynyň adyny giriziň', trigger: 'blur' }],
+  title: [{ required: true, message: 'Çykdajynyň adyny giriziň ýa-da saýlaň', trigger: 'change' }],
   amount: [{ required: true, message: 'Möçberini giriziň', trigger: 'change' }]
+}
+
+const loadDictionaries = async () => {
+  try {
+    const [expRes, currRes] = await Promise.all([
+      api.get('/vehicles/dictionaries/expense-types/'),
+      api.get('/vehicles/dictionaries/currencies/')
+    ])
+    expenseTypesList.value = Array.isArray(expRes.data) ? expRes.data : expRes.data.results || []
+    currenciesList.value = Array.isArray(currRes.data) ? currRes.data : currRes.data.results || []
+
+    if (currenciesList.value.length > 0 && !form.currency) {
+      form.currency = currenciesList.value[0].code
+    }
+  } catch (err) {}
 }
 
 const submitExpense = async () => {

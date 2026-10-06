@@ -5,18 +5,57 @@ export interface User {
   username: string
   first_name: string
   last_name: string
-  email: string
+  email?: string
   role: UserRole
   phone_number?: string
+  raw_password?: string
   created_at: string
 }
+
 
 export interface EmployeeCreated extends User {
   generated_password?: string
 }
 
-export type VehicleStatus = 'PURCHASED' | 'IN_TRANSIT' | 'ARRIVED_TKM' | 'SOLD'
-export type VehicleLocation = 'USA_COPART' | 'SHIPPING_TRANSIT' | 'GEORGIA' | 'TURKMENISTAN_INTERNAL'
+export type VehicleStatus = 'PURCHASED' | 'IN_TRANSIT' | 'ARRIVED_TKM' | 'SOLD' | string
+export type VehicleLocation = 'USA_COPART' | 'SHIPPING_TRANSIT' | 'GEORGIA' | 'TURKMENISTAN_INTERNAL' | string
+
+export interface DynamicStatus {
+  id: number
+  code: string
+  name: string
+}
+
+export interface DynamicLocation {
+  id: number
+  code: string
+  name: string
+}
+
+export interface Make {
+  id: number
+  name: string
+}
+
+export interface VehicleModel {
+  id: number
+  make: number
+  make_name?: string
+  name: string
+}
+
+export interface Currency {
+  id: number
+  code: string
+  name: string
+  symbol: string
+}
+
+export interface ExpenseType {
+  id: number
+  name: string
+}
+
 
 export interface Vehicle {
   vin: string
@@ -30,7 +69,10 @@ export interface Vehicle {
   location: VehicleLocation
   current_owner: number | null
   current_owner_detail?: User | null
+  pending_handover_owner?: number | null
+  pending_handover_owner_detail?: User | null
   is_handed_over: boolean
+
   total_expenses: string
   created_at: string
   updated_at: string

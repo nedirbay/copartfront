@@ -40,7 +40,20 @@ const router = createRouter({
           name: 'employees',
           component: EmployeesView,
           meta: { adminOnly: true }
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: () => import('@/views/ReportsView.vue')
+        },
+        {
+          path: 'dictionaries',
+          name: 'dictionaries',
+          component: () => import('@/views/DictionariesView.vue'),
+          meta: { adminOnly: true }
         }
+
+
       ]
     },
     {

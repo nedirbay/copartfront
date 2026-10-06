@@ -35,17 +35,21 @@
 
       <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
         <el-select v-model="filterStatus" placeholder="Status filtri" clearable class="!w-44">
-          <el-option label="Satyn alyndy" value="PURCHASED" />
-          <el-option label="Ýolda" value="IN_TRANSIT" />
-          <el-option label="Türkmenistana geldi" value="ARRIVED_TKM" />
-          <el-option label="Satyldy" value="SOLD" />
+          <el-option
+            v-for="st in statusesList"
+            :key="st.code"
+            :label="st.name"
+            :value="st.code"
+          />
         </el-select>
 
         <el-select v-model="filterLocation" placeholder="Ýerleşýän ýeri" clearable class="!w-52">
-          <el-option label="Amerika (Copart)" value="USA_COPART" />
-          <el-option label="Ýük daşama ýola çykaryldy" value="SHIPPING_TRANSIT" />
-          <el-option label="Gruziýa" value="GEORGIA" />
-          <el-option label="Türkmenistan" value="TURKMENISTAN_INTERNAL" />
+          <el-option
+            v-for="loc in locationsList"
+            :key="loc.code"
+            :label="loc.name"
+            :value="loc.code"
+          />
         </el-select>
 
         <el-button @click="resetFilters">Süzgüçleri Arassala</el-button>
@@ -140,7 +144,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api'
-import type { Vehicle, VehicleStatus, VehicleLocation } from '@/types'
+import type { Vehicle, DynamicStatus, DynamicLocation } from '@/types'
 import VehicleCreateModal from '@/components/modals/VehicleCreateModal.vue'
 
 const authStore = useAuthStore()
@@ -152,19 +156,33 @@ const filterStatus = ref('')
 const filterLocation = ref('')
 const showCreateModal = ref(false)
 
+const statusesList = ref<DynamicStatus[]>([])
+const locationsList = ref<DynamicLocation[]>([])
+
+const fetchDictionaries = async () => {
+  try {
+    const [stRes, locRes] = await Promise.all([
+      api.get('/vehicles/dictionaries/statuses/'),
+      api.get('/vehicles/dictionaries/locations/')
+    ])
+    statusesList.value = Array.isArray(stRes.data) ? stRes.data : stRes.data.results || []
+    locationsList.value = Array.isArray(locRes.data) ? locRes.data : locRes.data.results || []
+  } catch (err) {}
+}
+
 const fetchVehicles = async () => {
   loading.value = true
   try {
     const res = await api.get<Vehicle[]>('/vehicles/')
     vehicles.value = Array.isArray(res.data) ? res.data : (res.data as any).results || []
   } catch (err) {
-    // Handle error
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
+  fetchDictionaries()
   fetchVehicles()
 })
 
@@ -184,17 +202,19 @@ const resetFilters = () => {
   filterLocation.value = ''
 }
 
-const getStatusTagType = (status: VehicleStatus) => {
+const getStatusTagType = (status: string) => {
   switch (status) {
     case 'PURCHASED': return 'info'
     case 'IN_TRANSIT': return 'warning'
     case 'ARRIVED_TKM': return 'success'
     case 'SOLD': return 'danger'
-    default: return 'info'
+    default: return 'primary'
   }
 }
 
-const getStatusLabel = (status: VehicleStatus) => {
+const getStatusLabel = (status: string) => {
+  const found = statusesList.value.find(s => s.code === status)
+  if (found) return found.name
   switch (status) {
     case 'PURCHASED': return 'Satyn alyndy'
     case 'IN_TRANSIT': return 'Ýolda'
@@ -204,7 +224,9 @@ const getStatusLabel = (status: VehicleStatus) => {
   }
 }
 
-const getLocationLabel = (loc: VehicleLocation) => {
+const getLocationLabel = (loc: string) => {
+  const found = locationsList.value.find(l => l.code === loc)
+  if (found) return found.name
   switch (loc) {
     case 'USA_COPART': return 'Amerika (Copart)'
     case 'SHIPPING_TRANSIT': return 'Ýük daşama'

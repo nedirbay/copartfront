@@ -8,6 +8,34 @@
       </el-button>
     </div>
 
+    <!-- Handover Pending Confirmation Banner (Target Employee) -->
+    <div
+      v-if="vehicle && vehicle.pending_handover_owner === authStore.user?.id"
+      class="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-xs">
+          <el-icon><Share /></el-icon>
+        </div>
+        <div>
+          <h4 class="text-base font-bold text-slate-900">Awtoulagy Kabul Etmek Tassyklaýşy (Handover)</h4>
+          <p class="text-xs text-slate-600">
+            Siziň adyňyza kabul ediş-tabşyryş haýyşy geldi. Awtoulagy öz üstüňize kabul etmek üçin "Tassykla" düwmesine basyň.
+          </p>
+        </div>
+      </div>
+
+      <el-button
+        type="success"
+        size="large"
+        class="!rounded-xl shadow-xs"
+        :loading="confirmingHandover"
+        @click="handleConfirmHandover"
+      >
+        <el-icon class="mr-1.5"><Check /></el-icon> Kabul Et / Tassykla
+      </el-button>
+    </div>
+
     <!-- Vehicle Main Header Card -->
     <div v-if="vehicle" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
       <div class="space-y-2">
@@ -18,8 +46,16 @@
           <el-tag :type="getStatusTagType(vehicle.status)" effect="dark" size="large" class="font-semibold">
             {{ getStatusLabel(vehicle.status) }}
           </el-tag>
-          <el-tag v-if="vehicle.is_handed_over" type="success" effect="plain" class="font-medium">
-            <el-icon class="mr-1"><Check /></el-icon> Kabul ediş-tabşyryş edildi
+
+          <!-- Status Badge: Berkidilen vs Tabşyrylan -->
+          <el-tag v-if="vehicle.is_handed_over" type="success" effect="light" class="font-semibold">
+            <el-icon class="mr-1"><Check /></el-icon> Awtoulag Tabşyrylan (Işgär Jogapkär)
+          </el-tag>
+          <el-tag v-else-if="vehicle.pending_handover_owner" type="warning" effect="light" class="font-semibold">
+            <el-icon class="mr-1"><Loading /></el-icon> Tabşyrylyşa Garaşylýar (@{{ vehicle.pending_handover_owner_detail?.username }})
+          </el-tag>
+          <el-tag v-else type="info" effect="light" class="font-semibold">
+            <el-icon class="mr-1"><Lock /></el-icon> Awtoulag Berkidilen (Tabşyrylmadyk)
           </el-tag>
         </div>
 
@@ -38,7 +74,21 @@
 
       <!-- Action Buttons -->
       <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <!-- Admin: Assign to Employee Button -->
         <el-button
+          v-if="canAssign"
+          type="info"
+          plain
+          size="large"
+          class="!rounded-xl"
+          @click="showAssignModal = true"
+        >
+          <el-icon class="mr-1.5"><User /></el-icon>
+          Işgäre Berkit / Üýtget
+        </el-button>
+
+        <el-button
+          v-if="canEditVehicle"
           type="primary"
           size="large"
           class="!rounded-xl"
@@ -48,6 +98,7 @@
           Status / Ýeri Üýtget
         </el-button>
 
+        <!-- Employee: Handover Button (Admin does NOT have Handover) -->
         <el-button
           v-if="canHandover"
           type="success"
@@ -56,9 +107,30 @@
           @click="showHandoverModal = true"
         >
           <el-icon class="mr-1.5"><Share /></el-icon>
-          Kabul Ediş-Tabşyryş (Handover)
+          Kabul Ediş-Tabşyryş Ugrat
         </el-button>
       </div>
+    </div>
+
+    <!-- Permission Info Alerts -->
+    <div v-if="vehicle" class="space-y-2">
+      <!-- Alert for Employee when vehicle is only assigned (not handed over) -->
+      <el-alert
+        v-if="!vehicle.is_handed_over && !authStore.isAdmin && vehicle.pending_handover_owner !== authStore.user?.id"
+        title="Awtoulag size diňe berkidilen (Tabşyrylmadyk). Siz diňe jikme-jik maglumatlary görüp bilersiňiz. Kabul ediş-tabşyryş edilip tassyklanýança üýtgeşme girizip bilmersiňiz."
+        type="info"
+        show-icon
+        :closable="false"
+      />
+
+      <!-- Alert for Admin when vehicle is handed over to employee -->
+      <el-alert
+        v-if="vehicle.is_handed_over && authStore.isAdmin"
+        title="Awtoulag işgäre tabşyrylan. Kabul ediş-tabşyryş edilenden soň diňe jogapkär işgär üýtgeşme girizip biler (Admin ulanyjy diňe okaýar)."
+        type="warning"
+        show-icon
+        :closable="false"
+      />
     </div>
 
     <!-- Vehicle Detailed Content Tabs -->
@@ -111,7 +183,12 @@
                 <p class="text-xs text-slate-500">Copart, daşama, Gruziýa, ussa we beýleki çykdajylar.</p>
               </div>
 
-              <el-button type="primary" class="!rounded-xl" @click="showExpenseModal = true">
+              <el-button
+                v-if="canEditVehicle"
+                type="primary"
+                class="!rounded-xl"
+                @click="showExpenseModal = true"
+              >
                 <el-icon class="mr-1"><Plus /></el-icon> Çykdajy Goş
               </el-button>
             </div>
@@ -150,7 +227,7 @@
           <div class="space-y-6 py-2">
             
             <!-- Upload Box -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+            <div v-if="canEditVehicle" class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
               <h4 class="text-sm font-bold text-slate-800">Täze Surat / Resminama Ýüklemek</h4>
               
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -245,6 +322,7 @@
     </div>
 
     <!-- Modals -->
+    <AssignModal v-model="showAssignModal" :vehicle="vehicle" @updated="refreshData" />
     <StatusLocationModal v-model="showStatusModal" :vehicle="vehicle" @updated="refreshData" />
     <HandoverModal v-model="showHandoverModal" :vehicle="vehicle" @updated="refreshData" />
     <ExpenseModal v-model="showExpenseModal" :vin="vin" @created="fetchExpenses" />
@@ -260,6 +338,7 @@ import { ElMessage } from 'element-plus'
 import api from '@/api'
 import type { Vehicle, VehicleHistoryLog, VehicleExpense, VehicleDocument, VehicleStatus, VehicleLocation } from '@/types'
 
+import AssignModal from '@/components/modals/AssignModal.vue'
 import StatusLocationModal from '@/components/modals/StatusLocationModal.vue'
 import HandoverModal from '@/components/modals/HandoverModal.vue'
 import ExpenseModal from '@/components/modals/ExpenseModal.vue'
@@ -269,12 +348,14 @@ const authStore = useAuthStore()
 const vin = route.params.vin as string
 
 const loading = ref(false)
+const confirmingHandover = ref(false)
 const vehicle = ref<Vehicle | null>(null)
 const expenses = ref<VehicleExpense[]>([])
 const documents = ref<VehicleDocument[]>([])
 const historyLogs = ref<VehicleHistoryLog[]>([])
 
 const activeTab = ref('info')
+const showAssignModal = ref(false)
 const showStatusModal = ref(false)
 const showHandoverModal = ref(false)
 const showExpenseModal = ref(false)
@@ -286,10 +367,31 @@ const uploadTitle = ref('')
 const uploadType = ref('PHOTO')
 const uploading = ref(false)
 
+// Business logic permission rule:
+// 1) Maşyn Berkitmek (is_handed_over = False): Assigned employee can view details, but CANNOT edit/add. ONLY Admin can edit.
+// 2) Maşyn Tabşyrmak (is_handed_over = True): Handed employee CAN edit/add. Admin CANNOT edit (Read-only).
+const canEditVehicle = computed(() => {
+  if (!vehicle.value) return false
+  if (vehicle.value.is_handed_over) {
+    return authStore.user?.id === vehicle.value.current_owner
+  } else {
+    return authStore.isAdmin
+  }
+})
+
+// Handover button is ONLY for assigned employee (Admin does NOT have Handover)
 const canHandover = computed(() => {
   if (!vehicle.value) return false
-  return authStore.isAdmin || vehicle.value.current_owner === authStore.user?.id
+  if (authStore.isAdmin) return false // Admin cannot initiate handover!
+  return !vehicle.value.is_handed_over && vehicle.value.current_owner === authStore.user?.id
 })
+
+// Assign button is for Admin to assign or change assigned employee before handover
+const canAssign = computed(() => {
+  if (!vehicle.value) return false
+  return authStore.isAdmin && !vehicle.value.is_handed_over
+})
+
 
 const fetchVehicleDetail = async () => {
   try {
@@ -300,11 +402,24 @@ const fetchVehicleDetail = async () => {
   }
 }
 
+const handleConfirmHandover = async () => {
+  if (!vehicle.value) return
+  confirmingHandover.value = true
+  try {
+    await api.post(`/vehicles/${vin}/confirm-handover/`)
+    ElMessage.success('Awtoulag üstünlikli kabul edildi we tassyklandy!')
+    refreshData()
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || 'Tassyklaýyşda ýalňyşlyk döredi.')
+  } finally {
+    confirmingHandover.value = false
+  }
+}
+
 const fetchExpenses = async () => {
   try {
     const res = await api.get<VehicleExpense[]>(`/vehicles/${vin}/expenses/`)
     expenses.value = Array.isArray(res.data) ? res.data : (res.data as any).results || []
-    // Re-fetch vehicle details to get updated total_expenses
     fetchVehicleDetail()
   } catch (err) {}
 }
@@ -365,8 +480,9 @@ const uploadDocument = async () => {
     selectedFile.value = null
     uploadTitle.value = ''
     fetchDocuments()
-  } catch (err) {
-    ElMessage.error('Resminama ýüklenende ýalňyşlyk ýüze çykdy.')
+  } catch (err: any) {
+    const msg = err.response?.data?.detail || 'Resminama ýüklenende ýalňyşlyk ýüze çykdy.'
+    ElMessage.error(msg)
   } finally {
     uploading.value = false
   }

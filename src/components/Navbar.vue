@@ -27,6 +27,15 @@
             </router-link>
 
             <router-link
+              to="/reports"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 no-underline"
+              :class="$route.path.startsWith('/reports') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
+            >
+              <el-icon><DataAnalysis /></el-icon>
+              <span>Hasabatlar</span>
+            </router-link>
+
+            <router-link
               v-if="authStore.isAdmin"
               to="/employees"
               class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 no-underline"
@@ -35,6 +44,18 @@
               <el-icon><User /></el-icon>
               <span>Işgärler</span>
             </router-link>
+
+
+            <router-link
+              v-if="authStore.isAdmin"
+              to="/dictionaries"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 no-underline"
+              :class="$route.path.startsWith('/dictionaries') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
+            >
+              <el-icon><Collection /></el-icon>
+              <span>Sözlükler</span>
+            </router-link>
+
           </nav>
         </div>
 
