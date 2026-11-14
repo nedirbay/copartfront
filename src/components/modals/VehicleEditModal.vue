@@ -129,6 +129,8 @@
           </el-select>
         </el-form-item>
 
+        <VehicleExtraFields :form="extra" :show-sale="true" />
+
         <!-- Photo Section -->
         <el-form-item :label="$t('vehicles.photoLabel')" class="col-span-2">
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
@@ -194,6 +196,8 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/api'
 import type { Vehicle, Make, VehicleModel, DynamicStatus, DynamicLocation, User } from '@/types'
 import { Delete, Picture, Upload } from '@element-plus/icons-vue'
+import VehicleExtraFields, { emptyExtra, extraFromVehicle, appendExtra } from '@/components/VehicleExtraFields.vue'
+import { apiError } from '@/utils/format'
 
 const props = defineProps<{
   modelValue: boolean
@@ -254,6 +258,8 @@ const form = reactive({
   current_owner: null as number | null
 })
 
+const extra = reactive(emptyExtra())
+
 const rules = computed<FormRules>(() => ({
   title: [{ required: true, message: t('vehicles.titleLabel'), trigger: 'blur' }],
   make: [{ required: true, message: t('vehicles.makeLabel'), trigger: 'change' }],
@@ -289,16 +295,20 @@ const getLocationLabel = (loc: string) => {
 
 const loadDictionaries = async () => {
   try {
-    const [makesRes, statusesRes, locationsRes, empRes] = await Promise.all([
+    const [makesRes, statusesRes, locationsRes] = await Promise.all([
       api.get('/vehicles/dictionaries/makes/'),
       api.get('/vehicles/dictionaries/statuses/'),
       api.get('/vehicles/dictionaries/locations/'),
-      api.get('/auth/employees/')
     ])
     makesList.value = Array.isArray(makesRes.data) ? makesRes.data : makesRes.data.results || []
     statusesList.value = Array.isArray(statusesRes.data) ? statusesRes.data : statusesRes.data.results || []
     locationsList.value = Array.isArray(locationsRes.data) ? locationsRes.data : locationsRes.data.results || []
-    employeesList.value = Array.isArray(empRes.data) ? empRes.data : empRes.data.results || []
+    // Işgärleriň doly sanawy diňe Admin üçin (işgär üçin 403 bolup, beýleki sözlükleri bozmaly däl)
+    if (authStore.isAdmin) {
+      const empRes = await api.get('/auth/employees/')
+      const list: User[] = Array.isArray(empRes.data) ? empRes.data : empRes.data.results || []
+      employeesList.value = list.filter(u => u.is_active !== false)
+    }
   } catch (err) {}
 }
 
@@ -317,6 +327,7 @@ const initForm = async () => {
     form.status = props.vehicle.status
     form.location = props.vehicle.location
     form.current_owner = props.vehicle.current_owner
+    Object.assign(extra, extraFromVehicle(props.vehicle))
 
     photoPreview.value = props.vehicle.photo_url || ''
 
@@ -397,9 +408,10 @@ const submitForm = async () => {
         formData.append('mileage', String(form.mileage))
         formData.append('status', form.status)
         formData.append('location', form.location)
-        if (form.current_owner !== null && form.current_owner !== undefined) {
+        if (authStore.isAdmin && form.current_owner !== null && form.current_owner !== undefined) {
           formData.append('current_owner', String(form.current_owner))
         }
+        appendExtra(formData, extra as unknown as Record<string, unknown>, true)
 
         if (photoFile.value) {
           formData.append('photo', photoFile.value)
@@ -417,8 +429,7 @@ const submitForm = async () => {
         visible.value = false
         emit('updated')
       } catch (err: any) {
-        const msg = err.response?.data?.detail || t('common.error')
-        ElMessage.error(msg)
+        ElMessage.error(apiError(err, t('common.error')))
       } finally {
         loading.value = false
       }

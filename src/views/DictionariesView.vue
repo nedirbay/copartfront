@@ -206,6 +206,12 @@
                 </template>
               </el-table-column>
               <el-table-column prop="name" :label="$t('dictionaries.name')" min-width="180" />
+              <el-table-column :label="$t('x.usdRate')" min-width="140">
+                <template #default="{ row }">
+                  <span class="font-mono">{{ row.usd_rate ? Number(row.usd_rate) : '—' }}</span>
+                  <span v-if="row.rate_updated_at" class="text-[10px] text-slate-400 block">{{ new Date(row.rate_updated_at).toLocaleDateString() }}</span>
+                </template>
+              </el-table-column>
               <el-table-column prop="symbol" :label="$t('dictionaries.symbol')" min-width="120">
                 <template #default="{ row }">
                   <span class="font-bold text-blue-700 bg-slate-100 px-2 py-0.5 rounded">{{ row.symbol }}</span>
@@ -342,6 +348,10 @@
         <el-form-item :label="$t('dictionaries.symbol')" required>
           <el-input v-model="currencyModal.form.symbol" placeholder="$" />
         </el-form-item>
+        <el-form-item :label="$t('x.usdRate')" required>
+          <el-input-number v-model="currencyModal.form.usd_rate" :min="0.000001" :precision="4" :step="0.1" :controls="false"
+            :disabled="currencyModal.form.code.trim().toUpperCase() === 'USD'" class="!w-full" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-end gap-2">
@@ -375,6 +385,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { Make, VehicleModel, DynamicStatus, DynamicLocation, Currency, ExpenseType } from '@/types'
+import { apiError } from '@/utils/format'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -436,7 +447,7 @@ const currencyModal = reactive({
   isEdit: false,
   editId: null as number | null,
   loading: false,
-  form: { code: '', name: '', symbol: '' }
+  form: { code: '', name: '', symbol: '', usd_rate: 1 as number }
 })
 
 const expenseTypeModal = reactive({
@@ -561,8 +572,8 @@ const saveMake = async () => {
     }
     makeModal.visible = false
     fetchMakes()
-  } catch (err) {
-    ElMessage.error('Marka ýatda saklananda ýalňyşlyk döredi.')
+  } catch (err: any) {
+    ElMessage.error(apiError(err, 'Marka ýatda saklananda ýalňyşlyk döredi.'))
   } finally {
     makeModal.loading = false
   }
@@ -581,8 +592,8 @@ const deleteMake = (make: Make) => {
         selectedMake.value = null
       }
       fetchMakes()
-    } catch (err) {
-      ElMessage.error('Markany öçürmekde ýalňyşlyk döredi.')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, 'Markany öçürmekde ýalňyşlyk döredi.'))
     }
   })
 }
@@ -613,8 +624,8 @@ const saveModel = async () => {
     }
     modelModal.visible = false
     fetchModelsForMake(selectedMake.value.id)
-  } catch (err) {
-    ElMessage.error('Model ýatda saklananda ýalňyşlyk döredi.')
+  } catch (err: any) {
+    ElMessage.error(apiError(err, 'Model ýatda saklananda ýalňyşlyk döredi.'))
   } finally {
     modelModal.loading = false
   }
@@ -632,8 +643,8 @@ const deleteModel = (model: VehicleModel) => {
       if (selectedMake.value) {
         fetchModelsForMake(selectedMake.value.id)
       }
-    } catch (err) {
-      ElMessage.error('Modeli öçürmekde ýalňyşlyk döredi.')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, 'Modeli öçürmekde ýalňyşlyk döredi.'))
     }
   })
 }
@@ -660,8 +671,8 @@ const saveStatus = async () => {
     }
     statusModal.visible = false
     fetchStatuses()
-  } catch (err) {
-    ElMessage.error('Status ýatda saklananda ýalňyşlyk döredi.')
+  } catch (err: any) {
+    ElMessage.error(apiError(err, 'Status ýatda saklananda ýalňyşlyk döredi.'))
   } finally {
     statusModal.loading = false
   }
@@ -677,8 +688,8 @@ const deleteStatus = (status: DynamicStatus) => {
       await api.delete(`/vehicles/dictionaries/statuses/${status.id}/`)
       ElMessage.success('Status öçürüldi.')
       fetchStatuses()
-    } catch (err) {
-      ElMessage.error('Statusy öçürmekde ýalňyşlyk döredi.')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, 'Statusy öçürmekde ýalňyşlyk döredi.'))
     }
   })
 }
@@ -705,8 +716,8 @@ const saveLocation = async () => {
     }
     locationModal.visible = false
     fetchLocations()
-  } catch (err) {
-    ElMessage.error('Ýerleşýän ýer ýatda saklananda ýalňyşlyk döredi.')
+  } catch (err: any) {
+    ElMessage.error(apiError(err, 'Ýerleşýän ýer ýatda saklananda ýalňyşlyk döredi.'))
   } finally {
     locationModal.loading = false
   }
@@ -722,8 +733,8 @@ const deleteLocation = (loc: DynamicLocation) => {
       await api.delete(`/vehicles/dictionaries/locations/${loc.id}/`)
       ElMessage.success('Ýerleşýän ýer öçürüldi.')
       fetchLocations()
-    } catch (err) {
-      ElMessage.error('Ýerleşýän ýeri öçürmekde ýalňyşlyk döredi.')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, 'Ýerleşýän ýeri öçürmekde ýalňyşlyk döredi.'))
     }
   })
 }
@@ -735,6 +746,7 @@ const openCurrencyModal = (curr?: Currency) => {
   currencyModal.form.code = curr ? curr.code : ''
   currencyModal.form.name = curr ? curr.name : ''
   currencyModal.form.symbol = curr ? curr.symbol : ''
+  currencyModal.form.usd_rate = curr && curr.usd_rate ? Number(curr.usd_rate) : 1
   currencyModal.visible = true
 }
 
@@ -751,8 +763,8 @@ const saveCurrency = async () => {
     }
     currencyModal.visible = false
     fetchCurrencies()
-  } catch (err) {
-    ElMessage.error('Walýuta ýatda saklananda ýalňyşlyk döredi.')
+  } catch (err: any) {
+    ElMessage.error(apiError(err, 'Walýuta ýatda saklananda ýalňyşlyk döredi.'))
   } finally {
     currencyModal.loading = false
   }
@@ -768,8 +780,8 @@ const deleteCurrency = (curr: Currency) => {
       await api.delete(`/vehicles/dictionaries/currencies/${curr.id}/`)
       ElMessage.success('Walýuta öçürüldi.')
       fetchCurrencies()
-    } catch (err) {
-      ElMessage.error('Walýutany öçürmekde ýalňyşlyk döredi.')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, 'Walýutany öçürmekde ýalňyşlyk döredi.'))
     }
   })
 }
@@ -795,8 +807,8 @@ const saveExpenseType = async () => {
     }
     expenseTypeModal.visible = false
     fetchExpenseTypes()
-  } catch (err) {
-    ElMessage.error('Çykdajy ady ýatda saklananda ýalňyşlyk döredi.')
+  } catch (err: any) {
+    ElMessage.error(apiError(err, 'Çykdajy ady ýatda saklananda ýalňyşlyk döredi.'))
   } finally {
     expenseTypeModal.loading = false
   }
@@ -812,8 +824,8 @@ const deleteExpenseType = (exp: ExpenseType) => {
       await api.delete(`/vehicles/dictionaries/expense-types/${exp.id}/`)
       ElMessage.success('Çykdajy ady öçürüldi.')
       fetchExpenseTypes()
-    } catch (err) {
-      ElMessage.error('Çykdajy adyny öçürmekde ýalňyşlyk döredi.')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, 'Çykdajy adyny öçürmekde ýalňyşlyk döredi.'))
     }
   })
 }

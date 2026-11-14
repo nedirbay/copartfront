@@ -8,7 +8,18 @@ export interface User {
   email?: string
   role: UserRole
   phone_number?: string
-  raw_password?: string
+  telegram_chat_id?: string
+  is_active?: boolean
+  vehicles_count?: number
+  created_at: string
+}
+
+export interface AppNotification {
+  id: number
+  vehicle: string | null
+  kind: string
+  message: string
+  is_read: boolean
   created_at: string
 }
 
@@ -49,6 +60,8 @@ export interface Currency {
   code: string
   name: string
   symbol: string
+  usd_rate?: string
+  rate_updated_at?: string | null
 }
 
 export interface ExpenseType {
@@ -72,10 +85,30 @@ export interface Vehicle {
   pending_handover_owner?: number | null
   pending_handover_owner_detail?: User | null
   is_handed_over: boolean
+  status_changed_at?: string | null
+
+  lot_number?: string
+  auction_date?: string | null
+  container_number?: string
+  eta?: string | null
+
+  purchase_price?: string | null
+  purchase_currency?: string
+  purchase_price_usd?: string | null
+  sale_price?: string | null
+  sale_currency?: string
+  sale_price_usd?: string | null
+  sold_at?: string | null
+  buyer_name?: string
+  buyer_phone?: string
+  buyer_note?: string
 
   total_expenses: string
+  expenses_by_currency?: Record<string, string>
+  profit_usd?: string | null
   photo?: string | null
   photo_url?: string | null
+  photos?: string[]
   created_at: string
   updated_at: string
 }
@@ -83,6 +116,7 @@ export interface Vehicle {
 export interface VehicleHistoryLog {
   id: number
   vehicle: string
+  event?: string
   status: string
   location: string
   owner: number | null
@@ -99,8 +133,10 @@ export interface VehicleExpense {
   title: string
   amount: string
   currency: string
+  amount_usd?: string | null
   description: string
   stage: string
+  receipt?: string | null
   created_by: number | null
   created_by_detail?: User | null
   created_at: string

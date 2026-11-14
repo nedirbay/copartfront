@@ -37,6 +37,16 @@
 
             <router-link
               v-if="authStore.isAdmin"
+              to="/dashboard"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 no-underline"
+              :class="$route.path.startsWith('/dashboard') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
+            >
+              <el-icon><Odometer /></el-icon>
+              <span>{{ $t('x.dashboard') }}</span>
+            </router-link>
+
+            <router-link
+              v-if="authStore.isAdmin"
               to="/employees"
               class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 no-underline"
               :class="$route.path.startsWith('/employees') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
@@ -83,8 +93,15 @@
             </template>
           </el-dropdown>
 
+          <NotificationBell v-if="authStore.user" />
+
           <!-- User Profile -->
-          <div v-if="authStore.user" class="hidden sm:flex items-center gap-3 pl-1 pr-3 border-r border-slate-200">
+          <div
+            v-if="authStore.user"
+            class="hidden sm:flex items-center gap-3 pl-1 pr-3 border-r border-slate-200 cursor-pointer"
+            :title="$t('x.profile')"
+            @click="showProfile = true"
+          >
             <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm">
               {{ authStore.user.first_name ? authStore.user.first_name[0].toUpperCase() : authStore.user.username[0].toUpperCase() }}
             </div>
@@ -112,17 +129,22 @@
 
       </div>
     </div>
+    <ProfileModal v-model="showProfile" />
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import NotificationBell from '@/components/NotificationBell.vue'
+import ProfileModal from '@/components/modals/ProfileModal.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { setLanguage, type SupportedLocale } from '@/i18n'
-import { ArrowDown, SwitchButton, Van, DataAnalysis, User, Collection } from '@element-plus/icons-vue'
+import { ArrowDown, SwitchButton, Van, DataAnalysis, User, Collection, Odometer } from '@element-plus/icons-vue'
+
+const showProfile = ref(false)
 
 const router = useRouter()
 const authStore = useAuthStore()

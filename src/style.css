@@ -46,3 +46,10 @@ html, body {
     opacity: 1;
   }
 }
+
+/* Çap / PDF: diňe awtoulag kartoçkasy */
+@media print {
+  header, .no-print, .el-button, .el-tabs__header { display: none !important; }
+  body { background: #fff !important; }
+  .el-tab-pane { display: block !important; }
+}

@@ -13,9 +13,21 @@
         </p>
       </div>
 
-      <el-button type="primary" plain class="!rounded-xl" @click="fetchReports">
-        <el-icon class="mr-1"><Refresh /></el-icon> {{ $t('reports.filterApply') }}
-      </el-button>
+      <div class="flex flex-wrap gap-2">
+        <el-select v-model="dateBasis" class="!w-48" @change="fetchReports">
+          <el-option value="created" :label="`${$t('x.dateBasis')}: ${$t('x.basisCreated')}`" />
+          <el-option value="sold" :label="`${$t('x.dateBasis')}: ${$t('x.basisSold')}`" />
+        </el-select>
+        <el-button plain class="!rounded-xl" :loading="exporting" @click="exportReport('xlsx')">
+          <el-icon class="mr-1"><Download /></el-icon> {{ $t('x.exportXlsx') }}
+        </el-button>
+        <el-button plain class="!rounded-xl" :loading="exporting" @click="exportReport('csv')">
+          {{ $t('x.exportCsv') }}
+        </el-button>
+        <el-button type="primary" plain class="!rounded-xl" @click="fetchReports">
+          <el-icon class="mr-1"><Refresh /></el-icon> {{ $t('reports.filterApply') }}
+        </el-button>
+      </div>
     </div>
 
     <!-- Filter Controls Card -->
@@ -163,9 +175,9 @@
           <div class="space-y-1">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('reports.totalExpenses') }}</span>
             <span class="text-3xl font-black text-emerald-600 font-mono block tracking-tight">
-              ${{ kpis.total_expenses_usd }}
+              {{ money(kpis.total_expenses_usd) }}
             </span>
-            <span class="text-[11px] text-slate-400 block">USD</span>
+            <span class="text-[11px] text-slate-400 block">{{ currencyBreakdown || 'USD' }}</span>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-2xl">
             <el-icon><Money /></el-icon>
@@ -200,6 +212,28 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Profit KPIs -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('x.soldCount') }}</span>
+          <span class="text-2xl font-black text-violet-700 block">{{ kpis.sold_count }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('x.totalPurchase') }}</span>
+          <span class="text-2xl font-black text-slate-900 font-mono block">{{ money(kpis.total_purchase_usd) }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('x.totalSale') }}</span>
+          <span class="text-2xl font-black text-slate-900 font-mono block">{{ money(kpis.total_sale_usd) }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('x.totalProfit') }}</span>
+          <span class="text-2xl font-black font-mono block" :class="Number(kpis.total_profit_usd) < 0 ? 'text-red-600' : 'text-emerald-600'">
+            {{ money(kpis.total_profit_usd) }}
+          </span>
+        </div>
       </div>
 
       <!-- Financial Visual Breakdown Cards Grid -->
@@ -361,7 +395,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { money, saveBlob } from '@/utils/format'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
@@ -377,7 +412,8 @@ import {
   PieChart,
   TrendCharts,
   Compass,
-  User
+  User,
+  Download
 } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -396,7 +432,21 @@ const kpis = reactive({
   total_vehicles: 0,
   total_expenses_usd: '0.00',
   handed_over_count: 0,
-  assigned_count: 0
+  assigned_count: 0,
+  sold_count: 0,
+  total_purchase_usd: '0.00',
+  total_sale_usd: '0.00',
+  total_profit_usd: '0.00',
+  expenses_by_currency: {} as Record<string, string>
+})
+const dateBasis = ref<'created' | 'sold'>('created')
+const exporting = ref(false)
+
+const currencyBreakdown = computed(() => {
+  const by = kpis.expenses_by_currency
+  const keys = Object.keys(by)
+  if (keys.length === 0 || (keys.length === 1 && keys[0] === 'USD')) return ''
+  return keys.map((k) => money(by[k], k)).join(' + ')
 })
 
 const byStatus = ref<Array<{ status: string; count: number }>>([])
@@ -409,11 +459,10 @@ const handlePeriodTypeChange = () => {
   fetchReports()
 }
 
-const fetchReports = async () => {
-  loading.value = true
-  try {
+const buildParams = () => {
     const params: Record<string, any> = {
-      period_type: periodType.value
+      period_type: periodType.value,
+      date_basis: dateBasis.value
     }
 
     if (periodType.value === 'day' && filterDate.value) {
@@ -432,7 +481,29 @@ const fetchReports = async () => {
       if (filterStartYear.value) params.start_year = filterStartYear.value
       if (filterEndYear.value) params.end_year = filterEndYear.value
     }
+    return params
+}
 
+const exportReport = async (fmt: 'xlsx' | 'csv') => {
+  exporting.value = true
+  try {
+    const res = await api.get('/vehicles/reports/export/', {
+      params: { ...buildParams(), file_format: fmt },
+      responseType: 'blob',
+    })
+    const stamp = new Date().toISOString().slice(0, 10)
+    saveBlob(res.data, `copart-hasabat-${stamp}.${fmt}`)
+  } catch (err) {
+    ElMessage.error(t('common.error'))
+  } finally {
+    exporting.value = false
+  }
+}
+
+const fetchReports = async () => {
+  loading.value = true
+  try {
+    const params = buildParams()
     const res = await api.get('/vehicles/reports/summary/', { params })
     const data = res.data
 
@@ -440,6 +511,11 @@ const fetchReports = async () => {
     kpis.total_expenses_usd = data.kpis.total_expenses_usd
     kpis.handed_over_count = data.kpis.handed_over_count
     kpis.assigned_count = data.kpis.assigned_count
+    kpis.sold_count = data.kpis.sold_count ?? 0
+    kpis.total_purchase_usd = data.kpis.total_purchase_usd ?? '0.00'
+    kpis.total_sale_usd = data.kpis.total_sale_usd ?? '0.00'
+    kpis.total_profit_usd = data.kpis.total_profit_usd ?? '0.00'
+    kpis.expenses_by_currency = data.kpis.expenses_by_currency ?? {}
 
     byStatus.value = data.by_status || []
     byLocation.value = data.by_location || []

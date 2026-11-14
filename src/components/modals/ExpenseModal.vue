@@ -1,10 +1,10 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="$t('vehicles.addExpenseBtn')"
+    :title="expense ? $t('x.editExpense') : $t('vehicles.addExpenseBtn')"
     width="500px"
     destroy-on-close
-    @open="loadDictionaries"
+    @open="onOpen"
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-position="top">
       <el-form-item :label="$t('vehicles.expenseTitle')" prop="title">
@@ -26,7 +26,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <el-form-item :label="$t('common.amount')" prop="amount">
-          <el-input-number v-model="form.amount" :min="0" :precision="2" :step="10" class="!w-full" />
+          <el-input-number v-model="form.amount" :min="0.01" :precision="2" :step="10" class="!w-full" />
         </el-form-item>
 
         <el-form-item :label="$t('common.currency')" prop="currency">
@@ -48,6 +48,14 @@
       <el-form-item :label="$t('common.description')">
         <el-input v-model="form.description" type="textarea" :rows="2" />
       </el-form-item>
+
+      <el-form-item :label="$t('x.receipt')">
+        <input ref="receiptInput" type="file" accept="image/*,application/pdf" class="hidden" @change="onReceipt" />
+        <div class="flex items-center gap-2">
+          <el-button @click="receiptInput?.click()">{{ receiptFile ? receiptFile.name : $t('x.attachReceipt') }}</el-button>
+          <a v-if="!receiptFile && expense?.receipt" :href="expense.receipt" target="_blank" class="text-xs text-blue-700">{{ $t('vehicles.viewDoc') }}</a>
+        </div>
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -65,11 +73,13 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
-import type { Currency, ExpenseType } from '@/types'
+import type { Currency, ExpenseType, VehicleExpense } from '@/types'
+import { apiError } from '@/utils/format'
 
 const props = defineProps<{
   modelValue: boolean
   vin: string
+  expense?: VehicleExpense | null
 }>()
 
 const emit = defineEmits<{
@@ -86,6 +96,8 @@ const visible = computed({
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const receiptInput = ref<HTMLInputElement | null>(null)
+const receiptFile = ref<File | null>(null)
 
 const expenseTypesList = ref<ExpenseType[]>([])
 const currenciesList = ref<Currency[]>([])
@@ -103,7 +115,14 @@ const rules = computed<FormRules>(() => ({
   amount: [{ required: true, message: t('common.amount'), trigger: 'change' }]
 }))
 
-const loadDictionaries = async () => {
+const onOpen = async () => {
+  receiptFile.value = null
+  const e = props.expense
+  form.title = e?.title ?? ''
+  form.amount = e ? Number(e.amount) : 0
+  form.currency = e?.currency ?? 'USD'
+  form.stage = e?.stage ?? ''
+  form.description = e?.description ?? ''
   try {
     const [expRes, currRes] = await Promise.all([
       api.get('/vehicles/dictionaries/expense-types/'),
@@ -111,31 +130,36 @@ const loadDictionaries = async () => {
     ])
     expenseTypesList.value = Array.isArray(expRes.data) ? expRes.data : expRes.data.results || []
     currenciesList.value = Array.isArray(currRes.data) ? currRes.data : currRes.data.results || []
-
-    if (currenciesList.value.length > 0 && !form.currency) {
-      form.currency = currenciesList.value[0].code
-    }
   } catch (err) {}
+}
+
+const onReceipt = (e: Event) => {
+  const files = (e.target as HTMLInputElement).files
+  receiptFile.value = files && files[0] ? files[0] : null
 }
 
 const submitExpense = async () => {
   if (!formRef.value || !props.vin) return
   await formRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        await api.post(`/vehicles/${props.vin}/expenses/`, form)
-        ElMessage.success(t('common.success'))
-        visible.value = false
-        form.title = ''
-        form.amount = 0
-        form.description = ''
-        emit('created')
-      } catch (err: any) {
-        ElMessage.error(t('common.error'))
-      } finally {
-        loading.value = false
+    if (!valid) return
+    loading.value = true
+    try {
+      const fd = new FormData()
+      Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)))
+      if (receiptFile.value) fd.append('receipt', receiptFile.value)
+      const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
+      if (props.expense) {
+        await api.patch(`/vehicles/${props.vin}/expenses/${props.expense.id}/`, fd, cfg)
+      } else {
+        await api.post(`/vehicles/${props.vin}/expenses/`, fd, cfg)
       }
+      ElMessage.success(t('common.success'))
+      visible.value = false
+      emit('created')
+    } catch (err: any) {
+      ElMessage.error(apiError(err, t('common.error')))
+    } finally {
+      loading.value = false
     }
   })
 }

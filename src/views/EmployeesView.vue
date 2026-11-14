@@ -48,13 +48,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('employees.role')" min-width="110">
-          <template #default>
-            <el-tag type="primary" effect="light" class="font-medium">
-              {{ $t('nav.roleEmployee') }}
+        <el-table-column :label="$t('common.status')" min-width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.is_active === false ? 'danger' : 'success'" effect="light" class="font-medium">
+              {{ row.is_active === false ? $t('x.inactive') : $t('x.active') }}
             </el-tag>
           </template>
         </el-table-column>
+
+        <el-table-column prop="vehicles_count" :label="$t('x.vehiclesCount')" min-width="90" align="center" />
 
         <el-table-column :label="$t('common.createdDate')" min-width="140">
           <template #default="{ row }">
@@ -66,15 +68,9 @@
         <el-table-column :label="$t('common.actions')" min-width="210" align="center">
           <template #default="{ row }">
             <div class="flex items-center justify-center gap-2">
-              <el-button
-                v-if="row.raw_password"
-                type="primary"
-                size="small"
-                class="!rounded-lg"
-                @click="copyToClipboard(row.raw_password)"
-              >
-                <el-icon class="mr-1"><DocumentCopy /></el-icon>
-                {{ $t('common.copy') }}
+              <el-button type="primary" plain size="small" class="!rounded-lg" @click="openEdit(row)">
+                <el-icon class="mr-1"><Edit /></el-icon>
+                {{ $t('common.edit') }}
               </el-button>
 
               <el-button
@@ -85,7 +81,7 @@
                 @click="handleResetPassword(row)"
               >
                 <el-icon class="mr-1"><Key /></el-icon>
-                {{ $t('common.edit') }}
+                {{ $t('x.resetPassword') }}
               </el-button>
             </div>
           </template>
@@ -95,6 +91,30 @@
 
     <!-- Create Employee Modal -->
     <EmployeeCreateModal v-model="showCreateModal" @created="fetchEmployees" />
+
+    <!-- Edit Employee -->
+    <el-dialog v-model="showEdit" :title="$t('x.editEmployee')" width="480px" destroy-on-close>
+      <el-form v-if="editForm" label-position="top">
+        <div class="grid grid-cols-2 gap-4">
+          <el-form-item :label="$t('x.firstName')"><el-input v-model="editForm.first_name" /></el-form-item>
+          <el-form-item :label="$t('x.lastName')"><el-input v-model="editForm.last_name" /></el-form-item>
+        </div>
+        <el-form-item :label="$t('employees.phone')"><el-input v-model="editForm.phone_number" /></el-form-item>
+        <el-form-item :label="$t('x.telegramChatId')"><el-input v-model="editForm.telegram_chat_id" /></el-form-item>
+        <el-form-item :label="$t('x.isActive')">
+          <el-switch v-model="editForm.is_active" />
+        </el-form-item>
+        <el-alert
+          v-if="!editForm.is_active && (editing?.vehicles_count || 0) > 0"
+          type="warning" show-icon :closable="false"
+          :title="$t('x.deactivateWarn', { count: editing?.vehicles_count })"
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="showEdit = false">{{ $t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="saveEdit">{{ $t('common.save') }}</el-button>
+      </template>
+    </el-dialog>
 
     <!-- Password Display & Copy Modal -->
     <el-dialog
@@ -112,8 +132,8 @@
           <h3 class="text-lg font-bold text-slate-900">
             {{ selectedUser.first_name }} {{ selectedUser.last_name }} (@{{ selectedUser.username }})
           </h3>
-          <p class="text-xs text-slate-500 mt-1">
-            {{ $t('employees.createHint') }}
+          <p class="text-xs text-amber-600 mt-1 font-semibold">
+            {{ $t('x.passwordOnce') }}
           </p>
         </div>
 
@@ -146,7 +166,8 @@ import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { User } from '@/types'
 import EmployeeCreateModal from '@/components/modals/EmployeeCreateModal.vue'
-import { UserFilled, DocumentCopy, Key } from '@element-plus/icons-vue'
+import { UserFilled, DocumentCopy, Key, Edit } from '@element-plus/icons-vue'
+import { apiError } from '@/utils/format'
 
 const { t, locale } = useI18n()
 const loading = ref(false)
@@ -156,6 +177,35 @@ const showCreateModal = ref(false)
 const showPasswordDialog = ref(false)
 const selectedUser = ref<User | null>(null)
 const generatedPassword = ref('')
+
+const showEdit = ref(false)
+const saving = ref(false)
+const editing = ref<User | null>(null)
+const editForm = ref<{ first_name: string; last_name: string; phone_number: string; telegram_chat_id: string; is_active: boolean } | null>(null)
+
+const openEdit = (u: User) => {
+  editing.value = u
+  editForm.value = {
+    first_name: u.first_name, last_name: u.last_name, phone_number: u.phone_number || '',
+    telegram_chat_id: u.telegram_chat_id || '', is_active: u.is_active !== false,
+  }
+  showEdit.value = true
+}
+
+const saveEdit = async () => {
+  if (!editing.value || !editForm.value) return
+  saving.value = true
+  try {
+    await api.patch(`/auth/employees/${editing.value.id}/`, editForm.value)
+    ElMessage.success(t('common.success'))
+    showEdit.value = false
+    fetchEmployees()
+  } catch (err: any) {
+    ElMessage.error(apiError(err, t('common.error')))
+  } finally {
+    saving.value = false
+  }
+}
 
 const fetchEmployees = async () => {
   loading.value = true

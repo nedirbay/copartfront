@@ -72,8 +72,11 @@ const note = ref('')
 
 const fetchEmployees = async () => {
   try {
-    const res = await api.get<User[]>('/auth/employees/')
-    employees.value = Array.isArray(res.data) ? res.data : (res.data as any).results || []
+    // /auth/employees/ diňe Admin üçin; işgärler tabşyrmak üçin gysga sanawy ulanýar
+    const res = await api.get<User[]>('/auth/employees/lookup/')
+    const list: User[] = Array.isArray(res.data) ? res.data : (res.data as any).results || []
+    // Awtoulagy özüne tabşyryp bolmaýar
+    employees.value = list.filter((u) => u.id !== props.vehicle?.current_owner)
   } catch (err) {
   }
 }

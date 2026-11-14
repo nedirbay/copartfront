@@ -25,16 +25,32 @@
         </div>
       </div>
 
-      <el-button
-        type="success"
-        size="large"
-        class="!rounded-xl shadow-xs"
-        :loading="confirmingHandover"
-        @click="handleConfirmHandover"
-      >
-        <el-icon class="mr-1.5"><Check /></el-icon> {{ $t('vehicles.confirmHandoverBtn') }}
-      </el-button>
+      <div class="flex gap-2">
+        <el-button size="large" type="danger" plain class="!rounded-xl" @click="handleRejectHandover">
+          {{ $t('x.rejectHandoverBtn') }}
+        </el-button>
+        <el-button
+          type="success"
+          size="large"
+          class="!rounded-xl shadow-xs"
+          :loading="confirmingHandover"
+          @click="handleConfirmHandover"
+        >
+          <el-icon class="mr-1.5"><Check /></el-icon> {{ $t('vehicles.confirmHandoverBtn') }}
+        </el-button>
+      </div>
     </div>
+
+    <!-- Pending handover: initiator / admin can cancel -->
+    <el-alert
+      v-if="vehicle && vehicle.pending_handover_owner && vehicle.pending_handover_owner !== authStore.user?.id && (authStore.isAdmin || vehicle.current_owner === authStore.user?.id)"
+      type="warning"
+      show-icon
+      :closable="false"
+      :title="$t('vehicles.pendingHandoverBadge', { username: vehicle.pending_handover_owner_detail?.username })"
+    >
+      <el-button size="small" type="warning" class="mt-2" @click="handleCancelHandover">{{ $t('x.cancelHandoverBtn') }}</el-button>
+    </el-alert>
 
     <!-- Vehicle Main Header Card -->
     <div v-if="vehicle" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -44,7 +60,7 @@
           <el-image
             v-if="vehicle.photo_url"
             :src="vehicle.photo_url"
-            :preview-src-list="[vehicle.photo_url]"
+            :preview-src-list="vehicle.photos && vehicle.photos.length ? vehicle.photos : [vehicle.photo_url]"
             preview-teleported
             fit="cover"
             class="w-28 h-24 sm:w-32 sm:h-28 rounded-2xl shadow-xs border border-slate-200 cursor-pointer hover:opacity-95 transition-all"
@@ -55,8 +71,12 @@
               </div>
             </template>
           </el-image>
+          <span
+            v-if="vehicle.photos && vehicle.photos.length > 1"
+            class="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
+          >{{ vehicle.photos.length }}</span>
           <div
-            v-else
+            v-else-if="!vehicle.photo_url"
             class="w-28 h-24 sm:w-32 sm:h-28 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-200 flex flex-col items-center justify-center text-slate-400"
           >
             <el-icon class="text-3xl"><Picture /></el-icon>
@@ -150,6 +170,18 @@
           {{ $t('vehicles.handoverBtn') }}
         </el-button>
 
+        <!-- Admin: force reassign / revoke handover -->
+        <el-button v-if="authStore.isAdmin && vehicle.is_handed_over" type="danger" plain size="large" class="!rounded-xl" @click="showForceModal = true">
+          {{ $t('x.forceReassignBtn') }}
+        </el-button>
+        <el-button v-if="authStore.isAdmin && vehicle.is_handed_over" type="warning" plain size="large" class="!rounded-xl" @click="handleRevokeHandover">
+          {{ $t('x.revokeHandoverBtn') }}
+        </el-button>
+
+        <el-button size="large" class="!rounded-xl no-print" @click="printCard">
+          <el-icon class="mr-1.5"><Printer /></el-icon>{{ $t('x.print') }}
+        </el-button>
+
         <!-- Admin: Delete Vehicle Button -->
         <el-button
           v-if="authStore.isAdmin"
@@ -204,8 +236,9 @@
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 block">{{ $t('vehicles.totalExpenses') }}</span>
               <span class="text-lg font-bold text-slate-900 font-mono mt-1 block text-emerald-700">
-                ${{ vehicle.total_expenses }}
+                {{ money(vehicle.total_expenses) }}
               </span>
+              <span v-if="currencyBreakdown" class="text-[11px] text-slate-500 block mt-0.5">{{ currencyBreakdown }}</span>
             </div>
 
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -215,6 +248,51 @@
               </span>
             </div>
 
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-2">
+            <!-- Finance -->
+            <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+              <h4 class="text-sm font-bold text-slate-800">{{ $t('x.finance') }}</h4>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.purchasePrice') }}</span>
+                <span class="font-mono font-semibold">{{ vehicle.purchase_price ? money(vehicle.purchase_price, vehicle.purchase_currency) : '—' }}</span></div>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.expensesUsd') }}</span>
+                <span class="font-mono font-semibold">{{ money(vehicle.total_expenses) }}</span></div>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.salePrice') }}</span>
+                <span class="font-mono font-semibold">{{ vehicle.sale_price ? money(vehicle.sale_price, vehicle.sale_currency) : '—' }}</span></div>
+              <div class="flex justify-between text-sm pt-2 border-t border-slate-100"><span class="font-semibold">{{ $t('x.profit') }}</span>
+                <span class="font-mono font-bold" :class="Number(vehicle.profit_usd) < 0 ? 'text-red-600' : 'text-emerald-700'">
+                  {{ vehicle.profit_usd !== null && vehicle.profit_usd !== undefined ? money(vehicle.profit_usd) : '—' }}
+                </span></div>
+              <div v-if="vehicle.sold_at" class="flex justify-between text-xs text-slate-500"><span>{{ $t('x.soldAt') }}</span><span>{{ dateOnly(vehicle.sold_at, locale) }}</span></div>
+            </div>
+
+            <!-- Logistics -->
+            <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+              <h4 class="text-sm font-bold text-slate-800">{{ $t('x.logistics') }}</h4>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.lotNumber') }}</span><span class="font-mono">{{ vehicle.lot_number || '—' }}</span></div>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.auctionDate') }}</span><span>{{ dateOnly(vehicle.auction_date, locale) }}</span></div>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.containerNumber') }}</span><span class="font-mono">{{ vehicle.container_number || '—' }}</span></div>
+              <div class="flex justify-between text-sm"><span class="text-slate-500">{{ $t('x.eta') }}</span>
+                <span :class="etaOverdue ? 'text-red-600 font-semibold' : ''">{{ dateOnly(vehicle.eta, locale) }}</span></div>
+              <template v-if="vehicle.buyer_name || vehicle.buyer_phone">
+                <h4 class="text-sm font-bold text-slate-800 pt-2 border-t border-slate-100">{{ $t('x.buyer') }}</h4>
+                <div class="text-sm">{{ vehicle.buyer_name }} <span class="font-mono text-slate-500">{{ vehicle.buyer_phone }}</span></div>
+                <div v-if="vehicle.buyer_note" class="text-xs text-slate-500">{{ vehicle.buyer_note }}</div>
+              </template>
+            </div>
+
+            <!-- Stage durations -->
+            <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+              <h4 class="text-sm font-bold text-slate-800">{{ $t('x.stageDurations') }}</h4>
+              <div v-for="(st, i) in stages" :key="i" class="flex justify-between text-sm">
+                <span class="text-slate-600">{{ getStatusLabel(st.status) }}</span>
+                <span class="font-mono">{{ st.days }} {{ $t('x.days') }}</span>
+              </div>
+              <div class="flex justify-between text-sm pt-2 border-t border-slate-100 font-semibold">
+                <span>{{ $t('x.totalDays') }}</span><span class="font-mono">{{ totalDays }} {{ $t('x.days') }}</span>
+              </div>
+            </div>
           </div>
         </el-tab-pane>
 
@@ -231,7 +309,7 @@
                 v-if="canEditVehicle"
                 type="primary"
                 class="!rounded-xl"
-                @click="showExpenseModal = true"
+                @click="openAddExpense"
               >
                 <el-icon class="mr-1"><Plus /></el-icon> {{ $t('vehicles.addExpenseBtn') }}
               </el-button>
@@ -247,7 +325,18 @@
               </el-table-column>
               <el-table-column :label="$t('common.amount')" min-width="140" align="right">
                 <template #default="{ row }">
-                  <span class="font-mono font-bold text-slate-900">${{ row.amount }} {{ row.currency }}</span>
+                  <span class="font-mono font-bold text-slate-900">{{ money(row.amount, row.currency) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('x.amountUsd')" min-width="110" align="right">
+                <template #default="{ row }">
+                  <span class="font-mono text-slate-600">{{ money(row.amount_usd) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('x.receipt')" min-width="80" align="center">
+                <template #default="{ row }">
+                  <a v-if="row.receipt" :href="row.receipt" target="_blank" class="text-blue-700"><el-icon><View /></el-icon></a>
+                  <span v-else class="text-slate-300">—</span>
                 </template>
               </el-table-column>
               <el-table-column :label="$t('vehicles.expenseCreatedBy')" min-width="150">
@@ -260,6 +349,12 @@
               <el-table-column :label="$t('common.date')" min-width="150">
                 <template #default="{ row }">
                   <span class="text-xs text-slate-500">{{ formatDate(row.created_at) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column v-if="canEditVehicle" :label="$t('common.actions')" width="110" align="center">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="openEditExpense(row)"><el-icon><Edit /></el-icon></el-button>
+                  <el-button link type="danger" @click="deleteExpense(row)"><el-icon><Delete /></el-icon></el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -323,9 +418,12 @@
 
                 <div class="pt-3 border-t border-slate-100 flex justify-between items-center mt-2">
                   <span class="text-xs text-slate-500">{{ $t('vehicles.docUploadedBy') }}: {{ doc.uploaded_by_detail?.username || '-' }}</span>
-                  <a :href="doc.file" target="_blank" class="text-blue-700 hover:text-blue-900 text-xs font-bold no-underline flex items-center gap-1">
-                    <el-icon><View /></el-icon> {{ $t('vehicles.viewDoc') }}
-                  </a>
+                  <div class="flex items-center gap-3">
+                    <a :href="doc.file" target="_blank" class="text-blue-700 hover:text-blue-900 text-xs font-bold no-underline flex items-center gap-1">
+                      <el-icon><View /></el-icon> {{ $t('vehicles.viewDoc') }}
+                    </a>
+                    <el-button v-if="canEditVehicle" link type="danger" size="small" @click="deleteDocument(doc)"><el-icon><Delete /></el-icon></el-button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -346,7 +444,8 @@
               >
                 <el-card class="!rounded-xl !border-slate-200 shadow-2xs">
                   <div class="space-y-1">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <el-tag v-if="log.event" size="small" effect="dark" :type="eventTagType(log.event)">{{ $t('x.ev_' + log.event) }}</el-tag>
                       <el-tag size="small" type="info">{{ getStatusLabel(log.status as any) }}</el-tag>
                       <span class="text-xs font-semibold text-slate-600">&bull; {{ getLocationLabel(log.location as any) }}</span>
                     </div>
@@ -369,7 +468,8 @@
     <AssignModal v-model="showAssignModal" :vehicle="vehicle" @updated="refreshData" />
     <StatusLocationModal v-model="showStatusModal" :vehicle="vehicle" @updated="refreshData" />
     <HandoverModal v-model="showHandoverModal" :vehicle="vehicle" @updated="refreshData" />
-    <ExpenseModal v-model="showExpenseModal" :vin="vin" @created="fetchExpenses" />
+    <ExpenseModal v-model="showExpenseModal" :vin="vin" :expense="editingExpense" @created="refreshData" />
+    <ForceReassignModal v-model="showForceModal" :vehicle="vehicle" @updated="refreshData" />
     <VehicleEditModal v-model="showEditModal" :vehicle="vehicle" @updated="refreshData" />
 
   </div>
@@ -397,8 +497,11 @@ import {
   Location,
   Plus,
   FolderOpened,
-  View
+  View,
+  Printer
 } from '@element-plus/icons-vue'
+import ForceReassignModal from '@/components/modals/ForceReassignModal.vue'
+import { money, dateOnly, apiError } from '@/utils/format'
 
 import AssignModal from '@/components/modals/AssignModal.vue'
 import StatusLocationModal from '@/components/modals/StatusLocationModal.vue'
@@ -425,6 +528,140 @@ const showStatusModal = ref(false)
 const showHandoverModal = ref(false)
 const showExpenseModal = ref(false)
 const showEditModal = ref(false)
+const showForceModal = ref(false)
+const editingExpense = ref<VehicleExpense | null>(null)
+const stages = ref<{ status: string; days: number }[]>([])
+const totalDays = ref(0)
+const statusNames = ref<Record<string, string>>({})
+const locationNames = ref<Record<string, string>>({})
+
+const currencyBreakdown = computed(() => {
+  const by = vehicle.value?.expenses_by_currency || {}
+  const keys = Object.keys(by)
+  if (keys.length === 0 || (keys.length === 1 && keys[0] === 'USD')) return ''
+  return keys.map((k) => money(by[k], k)).join(' + ')
+})
+
+const etaOverdue = computed(() => {
+  const v = vehicle.value
+  if (!v?.eta || v.status === 'ARRIVED_TKM' || v.status === 'SOLD') return false
+  return new Date(v.eta) < new Date(new Date().toDateString())
+})
+
+const eventTagType = (ev: string) => {
+  if (ev.startsWith('EXPENSE') || ev.startsWith('DOCUMENT')) return 'info'
+  if (ev === 'HANDOVER_CONFIRMED' || ev === 'CREATED') return 'success'
+  if (ev === 'HANDOVER_REJECTED' || ev === 'HANDOVER_CANCELLED' || ev === 'REASSIGNED' || ev === 'HANDOVER_REVOKED') return 'danger'
+  if (ev === 'HANDOVER_REQUESTED') return 'warning'
+  return 'primary'
+}
+
+const askReason = async (title: string, required: boolean): Promise<string | null> => {
+  try {
+    const { value } = await ElMessageBox.prompt(required ? t('x.reasonPrompt') : t('x.reasonOptional'), title, {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+      inputType: 'textarea',
+      inputValidator: (v: string) => (!required || (v && v.trim().length > 0)) || t('x.reasonRequired'),
+    })
+    return value || ''
+  } catch {
+    return null
+  }
+}
+
+const postAction = async (path: string, body: Record<string, unknown> = {}) => {
+  try {
+    await api.post(`/vehicles/${vin}/${path}/`, body)
+    ElMessage.success(t('common.success'))
+    refreshData()
+  } catch (err: any) {
+    ElMessage.error(apiError(err, t('common.error')))
+  }
+}
+
+const handleRejectHandover = async () => {
+  const note = await askReason(t('x.rejectHandoverBtn'), false)
+  if (note !== null) {
+    await postAction('reject-handover', { note })
+    router.push('/vehicles')
+  }
+}
+
+const handleCancelHandover = async () => {
+  const note = await askReason(t('x.cancelHandoverBtn'), false)
+  if (note !== null) postAction('cancel-handover', { note })
+}
+
+const handleRevokeHandover = async () => {
+  const note = await askReason(t('x.revokeHandoverBtn'), true)
+  if (note !== null) postAction('revoke-handover', { note })
+}
+
+const openAddExpense = () => {
+  editingExpense.value = null
+  showExpenseModal.value = true
+}
+
+const openEditExpense = (row: VehicleExpense) => {
+  editingExpense.value = row
+  showExpenseModal.value = true
+}
+
+const confirmDelete = async () => {
+  try {
+    await ElMessageBox.confirm(t('x.deleteConfirm'), t('common.delete'), {
+      confirmButtonText: t('common.yes'), cancelButtonText: t('common.cancel'), type: 'warning',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+const deleteExpense = async (row: VehicleExpense) => {
+  if (!(await confirmDelete())) return
+  try {
+    await api.delete(`/vehicles/${vin}/expenses/${row.id}/`)
+    ElMessage.success(t('common.success'))
+    refreshData()
+  } catch (err: any) {
+    ElMessage.error(apiError(err, t('common.error')))
+  }
+}
+
+const deleteDocument = async (doc: VehicleDocument) => {
+  if (!(await confirmDelete())) return
+  try {
+    await api.delete(`/vehicles/${vin}/documents/${doc.id}/`)
+    ElMessage.success(t('common.success'))
+    refreshData()
+  } catch (err: any) {
+    ElMessage.error(apiError(err, t('common.error')))
+  }
+}
+
+const printCard = () => window.print()
+
+const fetchStages = async () => {
+  try {
+    const res = await api.get(`/vehicles/${vin}/stage-durations/`)
+    stages.value = res.data.stages
+    totalDays.value = res.data.total_days
+  } catch (err) {}
+}
+
+const fetchDictNames = async () => {
+  try {
+    const [st, loc] = await Promise.all([
+      api.get('/vehicles/dictionaries/statuses/'),
+      api.get('/vehicles/dictionaries/locations/'),
+    ])
+    const list = (d: any) => (Array.isArray(d) ? d : d.results || []) as { code: string; name: string }[]
+    statusNames.value = Object.fromEntries(list(st.data).map((x) => [x.code, x.name]))
+    locationNames.value = Object.fromEntries(list(loc.data).map((x) => [x.code, x.name]))
+  } catch (err) {}
+}
 
 // File Upload state
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -480,7 +717,6 @@ const fetchExpenses = async () => {
   try {
     const res = await api.get<VehicleExpense[]>(`/vehicles/${vin}/expenses/`)
     expenses.value = Array.isArray(res.data) ? res.data : (res.data as any).results || []
-    fetchVehicleDetail()
   } catch (err) {}
 }
 
@@ -504,12 +740,14 @@ const refreshData = async () => {
     fetchVehicleDetail(),
     fetchExpenses(),
     fetchDocuments(),
-    fetchHistoryLogs()
+    fetchHistoryLogs(),
+    fetchStages()
   ])
   loading.value = false
 }
 
 onMounted(() => {
+  fetchDictNames()
   refreshData()
 })
 
@@ -571,7 +809,7 @@ const getStatusLabel = (status: VehicleStatus) => {
     case 'IN_TRANSIT': return t('vehicles.statusInTransit')
     case 'ARRIVED_TKM': return t('vehicles.statusArrivedTkm')
     case 'SOLD': return t('vehicles.statusSold')
-    default: return status
+    default: return statusNames.value[status] || status
   }
 }
 
@@ -581,7 +819,7 @@ const getLocationLabel = (loc: VehicleLocation) => {
     case 'SHIPPING_TRANSIT': return t('vehicles.locShippingTransit')
     case 'GEORGIA': return t('vehicles.locGeorgia')
     case 'TURKMENISTAN_INTERNAL': return t('vehicles.locTurkmenistanInternal')
-    default: return loc
+    default: return locationNames.value[loc] || loc
   }
 }
 

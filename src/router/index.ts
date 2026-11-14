@@ -36,6 +36,12 @@ const router = createRouter({
           component: VehicleDetailView
         },
         {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: () => import('@/views/DashboardView.vue'),
+          meta: { adminOnly: true }
+        },
+        {
           path: 'employees',
           name: 'employees',
           component: EmployeesView,

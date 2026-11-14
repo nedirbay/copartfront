@@ -12,7 +12,10 @@
       <div class="grid grid-cols-2 gap-4">
         
         <el-form-item :label="$t('vehicles.vinLabel')" prop="vin" class="col-span-2">
-          <el-input v-model="form.vin" :placeholder="$t('vehicles.vinPlaceholder')" maxlength="17" show-word-limit uppercase />
+          <div class="flex gap-2 w-full">
+            <el-input v-model="form.vin" :placeholder="$t('vehicles.vinPlaceholder')" maxlength="17" show-word-limit uppercase class="flex-1" />
+            <el-button :disabled="form.vin.trim().length !== 17" :loading="decoding" @click="decodeVin">{{ $t('x.vinDecode') }}</el-button>
+          </div>
         </el-form-item>
 
         <el-form-item :label="$t('vehicles.makeLabel')" prop="make">
@@ -115,6 +118,8 @@
           </el-select>
         </el-form-item>
 
+        <VehicleExtraFields :form="extra" />
+
         <!-- Photo Upload -->
         <el-form-item :label="$t('vehicles.photoLabel')" class="col-span-2">
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
@@ -173,6 +178,8 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
+import VehicleExtraFields, { emptyExtra, appendExtra } from '@/components/VehicleExtraFields.vue'
+import { apiError } from '@/utils/format'
 import type { Make, VehicleModel, DynamicStatus, DynamicLocation, User } from '@/types'
 import { Delete, Picture, Upload } from '@element-plus/icons-vue'
 
@@ -194,6 +201,8 @@ const visible = computed({
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const decoding = ref(false)
+const extra = reactive(emptyExtra())
 const loadingModels = ref(false)
 
 const photoInputRef = ref<HTMLInputElement | null>(null)
@@ -275,7 +284,7 @@ const loadDictionaries = async () => {
       api.get('/vehicles/dictionaries/makes/'),
       api.get('/vehicles/dictionaries/statuses/'),
       api.get('/vehicles/dictionaries/locations/'),
-      api.get('/auth/employees/')
+      api.get('/auth/employees/lookup/')
     ])
     makesList.value = Array.isArray(makesRes.data) ? makesRes.data : makesRes.data.results || []
     statusesList.value = Array.isArray(statusesRes.data) ? statusesRes.data : statusesRes.data.results || []
@@ -290,6 +299,7 @@ const loadDictionaries = async () => {
     }
     photoFile.value = null
     photoPreview.value = ''
+    Object.assign(extra, emptyExtra())
   } catch (err) {}
 }
 
@@ -343,6 +353,25 @@ const autoFillTitle = () => {
   }
 }
 
+const decodeVin = async () => {
+  decoding.value = true
+  try {
+    const res = await api.get('/vehicles/vin-decode/', { params: { vin: form.vin.trim().toUpperCase() } })
+    if (res.data.make) {
+      form.make = res.data.make
+      await handleMakeChange(res.data.make)
+    }
+    if (res.data.model) form.model = res.data.model
+    if (res.data.year) form.year = res.data.year
+    autoFillTitle()
+    ElMessage.success(t('x.vinDecodeOk'))
+  } catch (err: any) {
+    ElMessage.warning(apiError(err, t('x.vinDecodeFail')))
+  } finally {
+    decoding.value = false
+  }
+}
+
 const submitForm = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
@@ -365,6 +394,7 @@ const submitForm = async () => {
         if (photoFile.value) {
           formData.append('photo', photoFile.value)
         }
+        appendExtra(formData, extra as unknown as Record<string, unknown>, false)
 
         await api.post('/vehicles/', formData, {
           headers: {
@@ -375,8 +405,7 @@ const submitForm = async () => {
         visible.value = false
         emit('created')
       } catch (err: any) {
-        const msg = err.response?.data?.vin?.[0] || err.response?.data?.detail || t('common.error')
-        ElMessage.error(msg)
+        ElMessage.error(apiError(err, t('common.error')))
       } finally {
         loading.value = false
       }
