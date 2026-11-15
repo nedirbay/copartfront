@@ -58,6 +58,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
+import { useRealtime } from '@/realtime'
 import { dateOnly } from '@/utils/format'
 
 interface BriefVehicle {
@@ -95,12 +96,17 @@ const sections = computed(() => [
   { key: 'orphaned', label: t('x.orphaned'), rows: data.value!.orphaned_vehicles },
 ])
 
-onMounted(async () => {
-  loading.value = true
+const load = async (silent = false) => {
+  if (!silent) loading.value = true
   try {
     data.value = (await api.get<Dashboard>('/vehicles/reports/dashboard/')).data
+  } catch (err) {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(() => load())
+
+useRealtime(['vehicle.changed', 'vehicle.deleted', 'employees.changed'], () => load(true), { debounce: 800 })
 </script>

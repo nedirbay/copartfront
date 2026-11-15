@@ -384,6 +384,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
+import { useRealtime } from '@/realtime'
 import type { Make, VehicleModel, DynamicStatus, DynamicLocation, Currency, ExpenseType } from '@/types'
 import { apiError } from '@/utils/format'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
@@ -549,6 +550,18 @@ const handleTabChange = (tabName: any) => {
 
 onMounted(() => {
   fetchMakes()
+})
+
+// Başga Admin sözlügi üýtgetse — açyk duran sanaw täzelenýär
+useRealtime(['dictionary.changed'], (events) => {
+  const changed = new Set<string>(events.map((e) => (e.type === 'dictionary.changed' ? e.name : 'all')))
+  const has = (name: string) => changed.has('all') || changed.has(name)
+  if (has('makes')) fetchMakes()
+  if (has('models') && selectedMake.value) fetchModelsForMake(selectedMake.value.id)
+  if (has('statuses')) fetchStatuses()
+  if (has('locations')) fetchLocations()
+  if (has('currencies')) fetchCurrencies()
+  if (has('expense_types')) fetchExpenseTypes()
 })
 
 // CRUD Actions: Make

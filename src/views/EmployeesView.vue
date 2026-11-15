@@ -164,6 +164,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
+import { useRealtime } from '@/realtime'
 import type { User } from '@/types'
 import EmployeeCreateModal from '@/components/modals/EmployeeCreateModal.vue'
 import { UserFilled, DocumentCopy, Key, Edit } from '@element-plus/icons-vue'
@@ -207,13 +208,13 @@ const saveEdit = async () => {
   }
 }
 
-const fetchEmployees = async () => {
-  loading.value = true
+const fetchEmployees = async (silent = false) => {
+  if (!silent) loading.value = true
   try {
     const res = await api.get<User[]>('/auth/employees/')
     employees.value = Array.isArray(res.data) ? res.data : (res.data as any).results || []
   } catch (err) {
-    ElMessage.error(t('common.error'))
+    if (!silent) ElMessage.error(t('common.error'))
   } finally {
     loading.value = false
   }
@@ -222,6 +223,9 @@ const fetchEmployees = async () => {
 onMounted(() => {
   fetchEmployees()
 })
+
+// Başga Admin işgär goşsa / üýtgetse
+useRealtime(['employees.changed'], () => fetchEmployees(true))
 
 const handleResetPassword = (user: User) => {
   ElMessageBox.confirm(

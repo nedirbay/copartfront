@@ -481,6 +481,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { useRealtime } from '@/realtime'
 import api from '@/api'
 import type { Vehicle, VehicleHistoryLog, VehicleExpense, VehicleDocument, VehicleStatus, VehicleLocation } from '@/types'
 import {
@@ -690,12 +691,21 @@ const canAssign = computed(() => {
   return authStore.isAdmin && !vehicle.value.is_handed_over
 })
 
-const fetchVehicleDetail = async () => {
+const fetchVehicleDetail = async (silent = false) => {
   try {
     const res = await api.get<Vehicle>(`/vehicles/${vin}/`)
     vehicle.value = res.data
-  } catch (err) {
-    ElMessage.error(t('common.error'))
+    return true
+  } catch (err: any) {
+    const code = err.response?.status
+    if (silent && (code === 403 || code === 404)) {
+      // Real-time täzelemede: awtoulag pozuldy ýa-da başga işgäre geçirildi
+      ElMessage.warning(t('x.vehicleNoAccess'))
+      router.push('/vehicles')
+    } else if (!silent) {
+      ElMessage.error(t('common.error'))
+    }
+    return false
   }
 }
 
@@ -746,10 +756,35 @@ const refreshData = async () => {
   loading.value = false
 }
 
+/** Real-time täzeleme: spinner-siz, awtoulag elýeterli bolsa galan maglumatlar hem okalýar. */
+const refreshSilently = async () => {
+  if (!(await fetchVehicleDetail(true))) return
+  await Promise.all([fetchExpenses(), fetchDocuments(), fetchHistoryLogs(), fetchStages()])
+}
+
 onMounted(() => {
   fetchDictNames()
   refreshData()
 })
+
+useRealtime(
+  ['vehicle.changed', 'vehicle.deleted', 'dictionary.changed'],
+  (events) => {
+    if (events.some((e) => e.type === 'vehicle.deleted')) {
+      ElMessage.warning(t('x.vehicleRemoved'))
+      router.push('/vehicles')
+      return
+    }
+    if (events.some((e) => e.type !== 'dictionary.changed')) refreshSilently()
+    if (events.some((e) => e.type === 'resync' || e.type === 'dictionary.changed')) fetchDictNames()
+  },
+  {
+    filter: (e) =>
+      e.type === 'dictionary.changed'
+        ? ['statuses', 'locations'].includes(e.name)
+        : 'vin' in e && e.vin === vin,
+  }
+)
 
 const triggerFileSelect = () => {
   fileInput.value?.click()

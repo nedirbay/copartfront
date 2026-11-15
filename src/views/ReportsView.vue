@@ -400,6 +400,7 @@ import { money, saveBlob } from '@/utils/format'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
+import { useRealtime } from '@/realtime'
 import type { Vehicle, VehicleStatus, VehicleLocation } from '@/types'
 import {
   DataAnalysis,
@@ -500,8 +501,8 @@ const exportReport = async (fmt: 'xlsx' | 'csv') => {
   }
 }
 
-const fetchReports = async () => {
-  loading.value = true
+const fetchReports = async (silent = false) => {
+  if (!silent) loading.value = true
   try {
     const params = buildParams()
     const res = await api.get('/vehicles/reports/summary/', { params })
@@ -523,7 +524,7 @@ const fetchReports = async () => {
     byExpenseStage.value = data.by_expense_stage || []
     vehiclesList.value = data.vehicles || []
   } catch (err) {
-    ElMessage.error(t('common.error'))
+    if (!silent) ElMessage.error(t('common.error'))
   } finally {
     loading.value = false
   }
@@ -532,6 +533,9 @@ const fetchReports = async () => {
 onMounted(() => {
   fetchReports()
 })
+
+// Hasabat jemleri awtoulaglara / çykdajylara bagly — üýtgeşmeden soň täzelenýär
+useRealtime(['vehicle.changed', 'vehicle.deleted'], () => fetchReports(true), { debounce: 800 })
 
 const getPeriodLabel = (type: string) => {
   switch (type) {

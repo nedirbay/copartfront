@@ -225,6 +225,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
+import { useRealtime } from '@/realtime'
 import type { Vehicle, DynamicStatus, DynamicLocation } from '@/types'
 import VehicleCreateModal from '@/components/modals/VehicleCreateModal.vue'
 import VehicleEditModal from '@/components/modals/VehicleEditModal.vue'
@@ -260,8 +261,8 @@ const fetchDictionaries = async () => {
   } catch (err) {}
 }
 
-const fetchVehicles = async () => {
-  loading.value = true
+const fetchVehicles = async (silent = false) => {
+  if (!silent) loading.value = true
   try {
     const res = await api.get<Vehicle[]>('/vehicles/')
     vehicles.value = Array.isArray(res.data) ? res.data : (res.data as any).results || []
@@ -274,6 +275,14 @@ const fetchVehicles = async () => {
 onMounted(() => {
   fetchDictionaries()
   fetchVehicles()
+})
+
+// Başga ulanyjy awtoulag goşsa / üýtgetse / pozsa — sanaw derrew täzelenýär (spinner-siz)
+useRealtime(['vehicle.changed', 'vehicle.deleted', 'dictionary.changed'], (events) => {
+  if (events.some((e) => e.type !== 'dictionary.changed')) fetchVehicles(true)
+  if (events.some((e) => e.type === 'resync' || (e.type === 'dictionary.changed' && ['statuses', 'locations'].includes(e.name)))) {
+    fetchDictionaries()
+  }
 })
 
 const filteredVehicles = computed(() => {

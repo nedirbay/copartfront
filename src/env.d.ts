@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  /** WebSocket salgysy (meselem wss://api.example.com/ws/). Boş bolsa häzirki host ulanylýar. */
+  readonly VITE_WS_URL?: string
+}
+
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<{}, {}, any>

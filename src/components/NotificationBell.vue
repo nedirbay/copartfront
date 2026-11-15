@@ -1,5 +1,5 @@
 <template>
-  <el-popover placement="bottom-end" :width="360" trigger="click" @show="load">
+  <el-popover placement="bottom-end" :width="360" trigger="click" @show="onShow" @hide="open_ = false">
     <template #reference>
       <el-badge :value="unread" :hidden="unread === 0" :max="99">
         <el-button circle><el-icon><Bell /></el-icon></el-button>
@@ -28,16 +28,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
 import api from '@/api'
 import type { AppNotification } from '@/types'
+import { useRealtime } from '@/realtime'
 
 const router = useRouter()
 const unread = ref(0)
 const items = ref<AppNotification[]>([])
-let timer: number | undefined
+const open_ = ref(false)
 
 const refreshCount = async () => {
   try {
@@ -51,6 +52,11 @@ const load = async () => {
     const res = await api.get<AppNotification[]>('/notifications/')
     items.value = res.data
   } catch (err) {}
+}
+
+const onShow = () => {
+  open_.value = true
+  load()
 }
 
 const markAll = async () => {
@@ -68,9 +74,11 @@ const open = async (n: AppNotification) => {
   if (n.vehicle) router.push(`/vehicles/${n.vehicle}`)
 }
 
-onMounted(() => {
+onMounted(refreshCount)
+
+// Täze bildiriş geldi ýa-da başga enjamda okaldy — derrew täzelenýär
+useRealtime(['notifications.changed'], () => {
   refreshCount()
-  timer = window.setInterval(refreshCount, 60000)
+  if (open_.value) load()
 })
-onUnmounted(() => window.clearInterval(timer))
 </script>
