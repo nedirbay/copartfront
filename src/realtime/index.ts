@@ -13,6 +13,14 @@ export type RealtimeEvent =
   | { type: 'vehicle.changed'; vin: string }
   | { type: 'vehicle.deleted'; vin: string }
   | { type: 'notifications.changed' }
+  | {
+      type: 'notification.created'
+      id: number
+      vehicle: string | null
+      kind: string
+      message: string
+      created_at: string
+    }
   | { type: 'dictionary.changed'; name: 'statuses' | 'locations' | 'makes' | 'models' | 'currencies' | 'expense_types' }
   | { type: 'employees.changed' }
   | { type: 'session.revoked' }

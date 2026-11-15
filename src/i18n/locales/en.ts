@@ -208,6 +208,7 @@ export default {
     notifications: "Notifications",
     markAllRead: "Mark all as read",
     noNotifications: "No notifications",
+    newNotification: "New notification",
     vehicleRemoved: "This vehicle was deleted.",
     sessionRevoked: "Your account was deactivated. You have been signed out.",
     vehicleNoAccess: "This vehicle is no longer available to you.",

@@ -208,6 +208,7 @@ export default {
     notifications: "Bildirişler",
     markAllRead: "Hemmesini okaldy et",
     noNotifications: "Bildiriş ýok",
+    newNotification: "Täze bildiriş",
     vehicleRemoved: "Bu awtoulag pozuldy.",
     sessionRevoked: "Siziň hasabyňyz işjeňsizleşdirildi. Ulgamdan çykaryldyňyz.",
     vehicleNoAccess: "Bu awtoulag indi size elýeterli däl.",

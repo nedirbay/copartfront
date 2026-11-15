@@ -31,11 +31,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
+import { ElNotification } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '@/api'
 import type { AppNotification } from '@/types'
-import { useRealtime } from '@/realtime'
+import { useRealtime, type RealtimeEvent } from '@/realtime'
 
 const router = useRouter()
+const { t } = useI18n()
 const unread = ref(0)
 const items = ref<AppNotification[]>([])
 const open_ = ref(false)
@@ -57,6 +60,10 @@ const load = async () => {
 const onShow = () => {
   open_.value = true
   load()
+  // Brauzer bildirişleri üçin rugsat diňe ulanyjy hereketinde soralyp bilner — jaňjagaz basylanda soraýarys
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {})
+  }
 }
 
 const markAll = async () => {
@@ -81,4 +88,45 @@ useRealtime(['notifications.changed'], () => {
   refreshCount()
   if (open_.value) load()
 })
+
+type CreatedEvent = Extract<RealtimeEvent, { type: 'notification.created' }>
+
+/** Täze bildirişi görkezýär: tab açyk bolsa popup, gizlin bolsa brauzeriň (ulgamyň) bildirişi. */
+const announce = (e: CreatedEvent) => {
+  const n: AppNotification = { id: e.id, vehicle: e.vehicle, kind: e.kind, message: e.message, is_read: false, created_at: e.created_at }
+  const title = t('x.newNotification')
+
+  if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') {
+    // tag — birnäçe tab açyk bolsa brauzer bir bildiriş görkezýär
+    const desktop = new Notification(title, { body: n.message, tag: `copart-${n.id}`, icon: '/favicon.svg' })
+    desktop.onclick = () => {
+      window.focus()
+      desktop.close()
+      open(n)
+    }
+    return
+  }
+
+  const popup = ElNotification({
+    title,
+    message: n.message,
+    type: 'info',
+    duration: 8000,
+    customClass: 'cursor-pointer',
+    onClick: () => {
+      popup.close()
+      open(n)
+    },
+  })
+}
+
+useRealtime(
+  ['notification.created'],
+  (events) => {
+    const created = events.filter((e): e is CreatedEvent => e.type === 'notification.created')
+    // Bir wagtda köp bildiriş gelse ekrany doldurmazlyk üçin iň soňky 3-si
+    created.slice(-3).forEach(announce)
+  },
+  { debounce: 50 }
+)
 </script>

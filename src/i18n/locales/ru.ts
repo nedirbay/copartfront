@@ -208,6 +208,7 @@ export default {
     notifications: "Уведомления",
     markAllRead: "Отметить все прочитанными",
     noNotifications: "Нет уведомлений",
+    newNotification: "Новое уведомление",
     vehicleRemoved: "Этот автомобиль удалён.",
     sessionRevoked: "Ваша учётная запись деактивирована. Вы вышли из системы.",
     vehicleNoAccess: "Этот автомобиль вам больше недоступен.",
